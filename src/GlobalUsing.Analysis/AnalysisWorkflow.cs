@@ -1,8 +1,4 @@
 using System.Collections.Frozen;
-
-
-
-
 using Microsoft.Extensions.Logging;
 
 namespace GlobalUsing.Analysis;

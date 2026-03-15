@@ -1,4 +1,3 @@
-
 using GlobalUsing.Core.Models;
 using GlobalUsing.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -24,9 +23,10 @@ public sealed class FileDiscoveryServiceTests
 
         var result = await service.DiscoverAsync(options, CancellationToken.None);
 
-        result.AllFiles.Should().ContainSingle().Which.Should().Be(Path.Combine(root, "Program.cs"));
-        result.Projects.Should().ContainSingle();
-        result.Projects[0].ImplicitUsingsEnabled.Should().BeTrue();
+        var discoveredFile = Assert.Single(result.AllFiles);
+        Assert.Equal(Path.Combine(root, "Program.cs"), discoveredFile);
+        Assert.Single(result.Projects);
+        Assert.True(result.Projects[0].ImplicitUsingsEnabled);
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public sealed class FileDiscoveryServiceTests
 
         var result = await service.DiscoverAsync(AnalysisOptions.Default(Path.Combine(root, "App.slnx")), CancellationToken.None);
 
-        result.Projects.Should().ContainSingle();
-        result.Projects[0].ProjectPath.Should().Be(Path.Combine(root, "src", "App", "App.csproj"));
-        result.AllFiles.Should().ContainSingle(path => path.EndsWith("Program.cs", StringComparison.OrdinalIgnoreCase));
+        Assert.Single(result.Projects);
+        Assert.Equal(Path.Combine(root, "src", "App", "App.csproj"), result.Projects[0].ProjectPath);
+        Assert.Single(result.AllFiles.Where(path => path.EndsWith("Program.cs", StringComparison.OrdinalIgnoreCase)));
     }
 }

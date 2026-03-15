@@ -1,9 +1,6 @@
 
 using GlobalUsing.Core.Enums;
 
-
-
-
 namespace GlobalUsing.Analysis;
 
 public sealed class GlobalUsingRecommender : IGlobalUsingRecommender

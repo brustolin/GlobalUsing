@@ -1,4 +1,3 @@
-
 using GlobalUsing.Core.Enums;
 using GlobalUsing.Infrastructure;
 using GlobalUsing.Roslyn;
@@ -28,9 +27,9 @@ public sealed class CachingUsingCollectorTests
         var result = await collector.CollectAsync([filePath], CancellationToken.None);
 
         var usingDirective = result.Single().UsingDirectives.Single();
-        usingDirective.Signature.Name.Should().Be(expectedName);
-        usingDirective.Signature.Kind.Should().Be(expectedKind);
-        usingDirective.IsGlobal.Should().Be(expectedGlobal);
-        usingDirective.Signature.Alias.Should().Be(expectedAlias);
+        Assert.Equal(expectedName, usingDirective.Signature.Name);
+        Assert.Equal(expectedKind, usingDirective.Signature.Kind);
+        Assert.Equal(expectedGlobal, usingDirective.IsGlobal);
+        Assert.Equal(expectedAlias, usingDirective.Signature.Alias);
     }
 }

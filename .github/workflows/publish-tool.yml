@@ -1,0 +1,76 @@
+name: Publish Tool
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "NuGet package version to publish, for example 0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Resolve package version
+        id: version
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+
+          if [ -z "$VERSION" ]; then
+            echo "Package version could not be determined."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore
+        run: dotnet restore GlobalUsing.slnx
+
+      - name: Build
+        run: dotnet build GlobalUsing.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test GlobalUsing.slnx --configuration Release --no-build
+
+      - name: Pack tool
+        run: >
+          dotnet pack src/GlobalUsing.Cli/GlobalUsing.Cli.csproj
+          --configuration Release
+          --no-build
+          -o artifacts/packages
+          -p:PackageVersion=${{ steps.version.outputs.version }}
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GlobalUsing.${{ steps.version.outputs.version }}
+          path: artifacts/packages/*.nupkg
+
+      - name: Publish to NuGet
+        run: >
+          dotnet nuget push "artifacts/packages/*.nupkg"
+          --api-key "${{ secrets.NUGET_API_KEY }}"
+          --source "https://api.nuget.org/v3/index.json"
+          --skip-duplicate

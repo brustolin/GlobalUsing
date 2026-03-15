@@ -1,4 +1,3 @@
-
 using GlobalUsing.Analysis;
 using GlobalUsing.Core.Enums;
 using GlobalUsing.Core.Models;
@@ -34,10 +33,10 @@ public sealed class GlobalUsingRecommenderTests
 
         var result = recommender.Recommend(project, snapshot, options);
 
-        result.PromotionCandidates.Should().ContainSingle(candidate => candidate.Signature.Name == "System.Linq");
-        result.NamespaceUsages.Should().Contain(usage => usage.Signature.Name == "System" && usage.Status == RecommendationStatus.AlreadyGlobal);
-        result.NamespaceUsages.Should().Contain(usage => usage.Signature.Name == "System.Text.Json" && usage.Status == RecommendationStatus.KeepLocal);
-        result.Summary.CandidatesAboveThreshold.Should().Be(1);
-        result.Summary.EstimatedReductionOfDuplicatedUsings.Should().Be(4);
+        Assert.Single(result.PromotionCandidates.Where(candidate => candidate.Signature.Name == "System.Linq"));
+        Assert.Contains(result.NamespaceUsages, usage => usage.Signature.Name == "System" && usage.Status == RecommendationStatus.AlreadyGlobal);
+        Assert.Contains(result.NamespaceUsages, usage => usage.Signature.Name == "System.Text.Json" && usage.Status == RecommendationStatus.KeepLocal);
+        Assert.Equal(1, result.Summary.CandidatesAboveThreshold);
+        Assert.Equal(4, result.Summary.EstimatedReductionOfDuplicatedUsings);
     }
 }

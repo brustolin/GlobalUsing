@@ -1,4 +1,3 @@
-
 using GlobalUsing.Analysis;
 using GlobalUsing.Core.Enums;
 using GlobalUsing.Core.Models;
@@ -36,9 +35,9 @@ public sealed class NamespaceUsageAnalyzerTests
 
         var snapshot = analyzer.Analyze(project, sourceFiles, AnalysisOptions.Default());
 
-        snapshot.LocalUsages.Should().ContainSingle(metric => metric.Signature.Name == "System.Linq" && metric.FileCount == 2);
-        snapshot.LocalUsages.Should().NotContain(metric => metric.Signature.Name == "System");
-        snapshot.ExistingGlobalUsings.Should().ContainSingle(signature => signature.Name == "System.Collections");
-        snapshot.TotalExplicitUsingDirectives.Should().Be(4);
+        Assert.Single(snapshot.LocalUsages.Where(metric => metric.Signature.Name == "System.Linq" && metric.FileCount == 2));
+        Assert.DoesNotContain(snapshot.LocalUsages, metric => metric.Signature.Name == "System");
+        Assert.Single(snapshot.ExistingGlobalUsings.Where(signature => signature.Name == "System.Collections"));
+        Assert.Equal(4, snapshot.TotalExplicitUsingDirectives);
     }
 }

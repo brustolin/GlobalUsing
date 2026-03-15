@@ -5,7 +5,7 @@ This document is for contributors and maintainers. If you want to use the tool, 
 ## Solution Layout
 
 ```text
-GlobalUsing.sln
+GlobalUsing.slnx
 
 src/
   GlobalUsing.Cli
@@ -57,13 +57,13 @@ Project responsibilities:
 Build the solution:
 
 ```bash
-dotnet build GlobalUsing.sln
+dotnet build GlobalUsing.slnx
 ```
 
 Run tests:
 
 ```bash
-dotnet test GlobalUsing.sln
+dotnet test GlobalUsing.slnx
 ```
 
 Run the CLI locally:
@@ -83,6 +83,32 @@ Test the packed tool from a local package source:
 ```bash
 dotnet tool install --tool-path ./.tools --add-source ./src/GlobalUsing.Cli/bin/Release GlobalUsing
 ```
+
+## GitHub Release Workflow
+
+The repository includes a GitHub Actions workflow at `.github/workflows/publish-tool.yml`.
+
+It will:
+
+- trigger on tags matching `v*`
+- restore, build, and test the solution
+- pack `GlobalUsing.Cli` as a NuGet tool
+- publish the package to NuGet.org
+
+Required repository secret:
+
+- `NUGET_API_KEY`: an API key with permission to push packages to NuGet.org
+
+Release flow:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow strips the leading `v` and publishes package version `0.1.0`.
+
+You can also trigger the workflow manually with `workflow_dispatch` and provide the package version as an input.
 
 ## Native AOT
 
