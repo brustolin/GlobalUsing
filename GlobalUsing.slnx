@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/GlobalUsing.Analysis/GlobalUsing.Analysis.csproj" />
+    <Project Path="src/GlobalUsing.Cli/GlobalUsing.Cli.csproj" />
+    <Project Path="src/GlobalUsing.Core/GlobalUsing.Core.csproj" />
+    <Project Path="src/GlobalUsing.Infrastructure/GlobalUsing.Infrastructure.csproj" />
+    <Project Path="src/GlobalUsing.Roslyn/GlobalUsing.Roslyn.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GlobalUsing.Tests/GlobalUsing.Tests.csproj" />
+  </Folder>
+</Solution>

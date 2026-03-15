@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>globalusing</ToolCommandName>
+    <PackageId>GlobalUsing</PackageId>
+    <Description>Analyze C# using directives and recommend global usings.</Description>
+    <Authors>Dhiogo Brustolin</Authors>
+    <PackageTags>dotnet-tool;csharp;roslyn;global-using;cli;code-analysis</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
+    <PublishTrimmed Condition="'$(PublishAot)' == 'true'">true</PublishTrimmed>
+    <TrimMode Condition="'$(PublishAot)' == 'true'">full</TrimMode>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
+    <PackageReference Include="System.CommandLine" Version="3.0.0-preview.2.26159.112" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GlobalUsing.Core\GlobalUsing.Core.csproj" />
+    <ProjectReference Include="..\GlobalUsing.Analysis\GlobalUsing.Analysis.csproj" />
+    <ProjectReference Include="..\GlobalUsing.Roslyn\GlobalUsing.Roslyn.csproj" />
+    <ProjectReference Include="..\GlobalUsing.Infrastructure\GlobalUsing.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Link="README.md" />
+  </ItemGroup>
+
+</Project>
