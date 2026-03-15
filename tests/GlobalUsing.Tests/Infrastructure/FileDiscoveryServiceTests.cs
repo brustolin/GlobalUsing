@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using GlobalUsing.Core.Models;
 using GlobalUsing.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
