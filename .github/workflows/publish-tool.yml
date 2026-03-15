@@ -1,76 +1,125 @@
-name: Publish Tool
+name: Create Release
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: "NuGet package version to publish, for example 0.1.0"
+        description: 'Release version (e.g., 1.0.0)'
         required: true
         type: string
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed for creating releases and pushing code
+      id-token: write  # enable GitHub OIDC token issuance for this job
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Resolve package version
-        id: version
-        shell: bash
+      - name: Validate version format
         run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION="${{ github.event.inputs.version }}"
-          fi
-
-          if [ -z "$VERSION" ]; then
-            echo "Package version could not be determined."
+          VERSION="${{ inputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "Error: Invalid version format."
+            echo "Expected semver format (e.g., 1.0.0 or 1.0.0-beta.1)"
             exit 1
           fi
 
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Restore
-        run: dotnet restore GlobalUsing.slnx
-
-      - name: Build
-        run: dotnet build GlobalUsing.slnx --configuration Release --no-restore
-
-      - name: Test
-        run: dotnet test GlobalUsing.slnx --configuration Release --no-build
-
-      - name: Pack tool
-        run: >
-          dotnet pack src/GlobalUsing.Cli/GlobalUsing.Cli.csproj
-          --configuration Release
-          --no-build
-          -o artifacts/packages
-          -p:PackageVersion=${{ steps.version.outputs.version }}
-          -p:ContinuousIntegrationBuild=true
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          name: GlobalUsing.${{ steps.version.outputs.version }}
-          path: artifacts/packages/*.nupkg
+          fetch-depth: 0
 
-      - name: Publish to NuGet
-        run: >
-          dotnet nuget push "artifacts/packages/*.nupkg"
-          --api-key "${{ secrets.NUGET_API_KEY }}"
-          --source "https://api.nuget.org/v3/index.json"
-          --skip-duplicate
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Create release branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b release/${{ inputs.version }}
+
+      - name: Update version in project files
+        run: |
+          chmod +x scripts/update-version.sh
+          ./scripts/update-version.sh ${{ inputs.version }}
+
+      - name: Commit version updates
+        run: |
+          git add .
+          git commit -m "chore: bump version to ${{ inputs.version }}"
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ inputs.version }}"
+          git tag -a v$VERSION -m "Release version $VERSION"
+          git push origin release/$VERSION
+          git push origin v$VERSION
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          chmod +x scripts/get-changelog-entry.sh
+          CHANGELOG_CONTENT=$(./scripts/get-changelog-entry.sh ${{ inputs.version }})
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          PRERELEASE_FLAG=""
+          if [[ "$VERSION" == *"-"* ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          gh release create "v$VERSION" \
+            --title "$VERSION" \
+            --notes "${{ steps.changelog.outputs.content }}" \
+            $PRERELEASE_FLAG
+
+      - name: Build and pack NuGet packages
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet pack src/Forge.OData.Client/Forge.OData.Client.csproj \
+            --configuration Release --output ./artifacts
+          dotnet pack src/Forge.OData.CLI/Forge.OData.CLI.csproj \
+            --configuration Release --no-build --output ./artifacts
+
+      - name: Upload NuGet packages to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          gh release upload "v$VERSION" ./artifacts/*.nupkg
+
+      - name: NuGet login (OIDC → temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: NuGet push Forge.OData.Client
+        run: dotnet nuget push artifacts/Forge.OData.Client.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+      - name: NuGet push Forge.OData.CLI
+        run: dotnet nuget push artifacts/Forge.OData.CLI.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+      - name: Merge release branch to main
+        run: |
+          git checkout main
+          git merge --no-ff release/${{ inputs.version }} -m "chore: merge release ${{ inputs.version }} to main"
+          git push origin main
+
+      - name: Delete temporary release branch
+        if: success()
+        run: |
+          git push origin --delete release/${{ inputs.version }}
