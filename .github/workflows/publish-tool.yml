@@ -50,6 +50,15 @@ jobs:
           chmod +x scripts/update-version.sh
           ./scripts/update-version.sh ${{ inputs.version }}
 
+      - name: Build and pack NuGet packages
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet pack src/GlobalUsing.Cli/GlobalUsing.Cli.csproj \
+            --configuration Release --output ./artifacts
+          dotnet pack src/GlobalUsing.Cli/GlobalUsing.Cli.csproj \
+            --configuration Release --no-build --output ./artifacts
+
       - name: Commit version updates
         run: |
           git add .
@@ -85,15 +94,6 @@ jobs:
             --notes "${{ steps.changelog.outputs.content }}" \
             $PRERELEASE_FLAG
 
-      - name: Build and pack NuGet packages
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet pack src/Forge.OData.Client/Forge.OData.Client.csproj \
-            --configuration Release --output ./artifacts
-          dotnet pack src/Forge.OData.CLI/Forge.OData.CLI.csproj \
-            --configuration Release --no-build --output ./artifacts
-
       - name: Upload NuGet packages to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -108,10 +108,10 @@ jobs:
           user: ${{ secrets.NUGET_USER }}
 
       - name: NuGet push Forge.OData.Client
-        run: dotnet nuget push artifacts/Forge.OData.Client.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push artifacts/GlobalUsing.Cli.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       - name: NuGet push Forge.OData.CLI
-        run: dotnet nuget push artifacts/Forge.OData.CLI.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push artifacts/GlobalUsing.Cli.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       - name: Merge release branch to main
         run: |
