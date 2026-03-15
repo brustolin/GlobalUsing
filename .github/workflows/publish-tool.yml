@@ -56,8 +56,6 @@ jobs:
           dotnet build --configuration Release --no-restore
           dotnet pack src/GlobalUsing.Cli/GlobalUsing.Cli.csproj \
             --configuration Release --output ./artifacts
-          dotnet pack src/GlobalUsing.Cli/GlobalUsing.Cli.csproj \
-            --configuration Release --no-build --output ./artifacts
 
       - name: Commit version updates
         run: |
@@ -107,11 +105,8 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      - name: NuGet push Forge.OData.Client
-        run: dotnet nuget push artifacts/GlobalUsing.Cli.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-
-      - name: NuGet push Forge.OData.CLI
-        run: dotnet nuget push artifacts/GlobalUsing.Cli.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+      - name: NuGet push GlobalUsing
+        run: dotnet nuget push artifacts/GlobalUsing.*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       - name: Merge release branch to main
         run: |
@@ -120,6 +115,6 @@ jobs:
           git push origin main
 
       - name: Delete temporary release branch
-        if: success()
+        if: always()
         run: |
           git push origin --delete release/${{ inputs.version }}
