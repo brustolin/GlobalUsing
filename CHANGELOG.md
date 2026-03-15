@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Fix `Usage` message to reflect to correct binary name.
+
 ## [0.1.0] - 2026-03-15
 
 - Added the initial `globalusing` .NET tool for analyzing repeated C# `using` directives.
