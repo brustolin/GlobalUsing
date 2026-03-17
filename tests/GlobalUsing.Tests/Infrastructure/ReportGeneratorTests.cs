@@ -9,6 +9,19 @@ namespace GlobalUsing.Tests.Infrastructure;
 public sealed class ReportGeneratorTests
 {
     [Fact]
+    public void Generate_console_with_target_namespace_outputs_namespace_summary()
+    {
+        var generator = new ReportGenerator();
+
+        var report = generator.Generate(CreateAnalysisResult(), ReportFormat.Console, targetNamespace: "System.Linq");
+
+        Assert.Contains("Namespace Summary", report);
+        Assert.Contains("Namespace: System.Linq", report);
+        Assert.Contains("Files using namespace: 3", report);
+        Assert.DoesNotContain("Project:", report);
+    }
+
+    [Fact]
     public void Generate_console_summary_only_omits_project_details()
     {
         var generator = new ReportGenerator();
@@ -44,6 +57,20 @@ public sealed class ReportGeneratorTests
         Assert.NotNull(summary);
         Assert.Equal(3, summary.TotalCSharpFilesAnalyzed);
         Assert.Equal(2, summary.CandidatesAboveThreshold);
+    }
+
+    [Fact]
+    public void Generate_json_with_target_namespace_serializes_namespace_summary()
+    {
+        var generator = new ReportGenerator();
+
+        var report = generator.Generate(CreateAnalysisResult(), ReportFormat.Json, targetNamespace: "System.Linq");
+        var summary = JsonSerializer.Deserialize<NamespaceReportSummary>(report);
+
+        Assert.NotNull(summary);
+        Assert.Equal("System.Linq", summary.Namespace);
+        Assert.Equal(3, summary.FilesUsingNamespace);
+        Assert.Equal(100, summary.UsagePercentage);
     }
 
     private static AnalysisResult CreateAnalysisResult()

@@ -7,4 +7,5 @@ namespace GlobalUsing.Infrastructure;
 [JsonSerializable(typeof(AnalysisResult))]
 [JsonSerializable(typeof(AnalysisSummary))]
 [JsonSerializable(typeof(ApplyResult))]
+[JsonSerializable(typeof(NamespaceReportSummary))]
 internal sealed partial class InfrastructureJsonSerializerContext : JsonSerializerContext;

@@ -5,5 +5,5 @@ namespace GlobalUsing.Core.Interfaces;
 
 public interface IReportGenerator
 {
-    string Generate(AnalysisResult result, ReportFormat format, bool summaryOnly = false);
+    string Generate(AnalysisResult result, ReportFormat format, bool summaryOnly = false, string? targetNamespace = null);
 }

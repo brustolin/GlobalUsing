@@ -17,4 +17,17 @@ public sealed class OptionMapperTests
 
         Assert.True(mapped.SummaryOnly);
     }
+
+    [Fact]
+    public void Map_sets_target_namespace_when_option_is_present()
+    {
+        var options = new CliOptionSet();
+        var command = new Command("report");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--namespace", " System.Linq "]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal("System.Linq", mapped.TargetNamespace);
+    }
 }

@@ -16,6 +16,7 @@ internal static class OptionMapper
             GlobalUsingsFileName: parseResult.GetValue(optionSet.GlobalFileOption) ?? "GlobalUsings.cs",
             Format: ParseFormat(formatValue),
             ExcludePatterns: parseResult.GetValue(optionSet.ExcludeOption) ?? [],
+            TargetNamespace: NormalizeNamespace(parseResult.GetValue(optionSet.NamespaceOption)),
             IncludeStatic: parseResult.GetValue(optionSet.IncludeStaticOption),
             IncludeAlias: parseResult.GetValue(optionSet.IncludeAliasOption),
             SummaryOnly: parseResult.GetValue(optionSet.SummaryOnlyOption),
@@ -31,4 +32,7 @@ internal static class OptionMapper
             "markdown" => ReportFormat.Markdown,
             _ => throw new ArgumentException($"Unsupported format '{formatValue}'. Use console, json, or markdown."),
         };
+
+    private static string? NormalizeNamespace(string? namespaceValue) =>
+        string.IsNullOrWhiteSpace(namespaceValue) ? null : namespaceValue.Trim();
 }

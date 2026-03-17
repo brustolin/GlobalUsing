@@ -16,6 +16,8 @@ internal sealed class CliOptionSet
 
     public Option<string[]> ExcludeOption { get; } = CreateExcludeOption();
 
+    public Option<string?> NamespaceOption { get; } = CreateOption<string?>("--namespace", "Namespace to focus the report on or force into global usings during apply.");
+
     public Option<bool> IncludeStaticOption { get; } = CreateOption<bool>("--include-static", "Include using static directives in analysis.");
 
     public Option<bool> IncludeAliasOption { get; } = CreateOption<bool>("--include-alias", "Include alias using directives in analysis.");
@@ -34,6 +36,7 @@ internal sealed class CliOptionSet
         command.Options.Add(GlobalFileOption);
         command.Options.Add(FormatOption);
         command.Options.Add(ExcludeOption);
+        command.Options.Add(NamespaceOption);
         command.Options.Add(IncludeStaticOption);
         command.Options.Add(IncludeAliasOption);
         command.Options.Add(SummaryOnlyOption);

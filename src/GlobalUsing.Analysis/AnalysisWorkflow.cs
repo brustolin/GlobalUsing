@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using GlobalUsing.Core.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace GlobalUsing.Analysis;
@@ -29,8 +30,10 @@ public sealed class AnalysisWorkflow(
         foreach (var project in context.Discovery.Projects)
         {
             var projectResult = context.ProjectResultsByRoot[project.RootPath];
+            var targetSignature = TryCreateTargetSignature(options.TargetNamespace);
             var promotedCandidates = projectResult.PromotionCandidates
                 .Select(candidate => candidate.Signature)
+                .Where(signature => targetSignature is null || UsingSignatureComparer.Instance.Equals(signature, targetSignature))
                 .ToImmutableSortedSet(UsingSignatureComparer.Instance);
 
             if (promotedCandidates.Count == 0 && projectResult.ExistingGlobalUsings.Length == 0)
@@ -58,9 +61,14 @@ public sealed class AnalysisWorkflow(
                 }
             }
 
-            var removableUsings = projectResult.ExistingGlobalUsings
-                .Concat(promotedCandidates)
-                .ToImmutableHashSet();
+            var removableUsings = targetSignature is null
+                ? projectResult.ExistingGlobalUsings
+                    .Concat(promotedCandidates)
+                    .ToImmutableHashSet()
+                : projectResult.ExistingGlobalUsings
+                    .Concat(promotedCandidates)
+                    .Where(signature => UsingSignatureComparer.Instance.Equals(signature, targetSignature))
+                    .ToImmutableHashSet();
 
             if (removableUsings.Count == 0)
             {
@@ -143,6 +151,9 @@ public sealed class AnalysisWorkflow(
             projectArray.Sum(project => project.Summary.CandidatesAboveThreshold),
             projectArray.Sum(project => project.Summary.EstimatedReductionOfDuplicatedUsings));
     }
+
+    private static UsingSignature? TryCreateTargetSignature(string? targetNamespace) =>
+        string.IsNullOrWhiteSpace(targetNamespace) ? null : new UsingSignature(targetNamespace.Trim(), UsingKind.Normal);
 
     private sealed record WorkflowContext(
         FileDiscoveryResult Discovery,

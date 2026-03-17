@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using GlobalUsing.Core.Enums;
@@ -8,13 +9,79 @@ namespace GlobalUsing.Infrastructure;
 
 public sealed class ReportGenerator : IReportGenerator
 {
-    public string Generate(AnalysisResult result, ReportFormat format, bool summaryOnly = false) =>
-        format switch
+    public string Generate(AnalysisResult result, ReportFormat format, bool summaryOnly = false, string? targetNamespace = null)
+    {
+        if (!string.IsNullOrWhiteSpace(targetNamespace))
+        {
+            return GenerateNamespaceReport(result, format, targetNamespace);
+        }
+
+        return format switch
         {
             ReportFormat.Json => GenerateJson(result, summaryOnly),
             ReportFormat.Markdown => GenerateMarkdown(result, summaryOnly),
             _ => GenerateConsole(result, summaryOnly),
         };
+    }
+
+    private static string GenerateNamespaceReport(AnalysisResult result, ReportFormat format, string targetNamespace)
+    {
+        var summary = BuildNamespaceSummary(result, targetNamespace);
+
+        return format switch
+        {
+            ReportFormat.Json => JsonSerializer.Serialize(summary, InfrastructureJsonSerializerContext.Default.NamespaceReportSummary),
+            ReportFormat.Markdown => GenerateNamespaceMarkdown(summary),
+            _ => GenerateNamespaceConsole(summary),
+        };
+    }
+
+    private static NamespaceReportSummary BuildNamespaceSummary(AnalysisResult result, string targetNamespace)
+    {
+        var normalizedNamespace = targetNamespace.Trim();
+        var matchingUsages = result.Projects
+            .Select(project => project.NamespaceUsages.FirstOrDefault(usage =>
+                usage.Signature.Kind == UsingKind.Normal
+                && string.Equals(usage.Signature.Name, normalizedNamespace, StringComparison.Ordinal)))
+            .ToImmutableArray();
+        var filesUsingNamespace = matchingUsages.Sum(usage => usage?.FileCount ?? 0);
+        var totalFiles = result.Summary.TotalCSharpFilesAnalyzed;
+
+        return new NamespaceReportSummary(
+            normalizedNamespace,
+            filesUsingNamespace,
+            totalFiles,
+            totalFiles == 0 ? 0d : Math.Round(filesUsingNamespace * 100d / totalFiles, 2, MidpointRounding.AwayFromZero),
+            matchingUsages.Count(usage => usage is { FileCount: > 0 }),
+            matchingUsages.Count(usage => usage?.Status == RecommendationStatus.AlreadyGlobal));
+    }
+
+    private static string GenerateNamespaceConsole(NamespaceReportSummary summary)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("Namespace Summary");
+        builder.AppendLine($"Namespace: {summary.Namespace}");
+        builder.AppendLine($"Files using namespace: {summary.FilesUsingNamespace}");
+        builder.AppendLine($"Total C# files analyzed: {summary.TotalCSharpFilesAnalyzed}");
+        builder.AppendLine($"Usage percentage: {summary.UsagePercentage:F2}%");
+        builder.AppendLine($"Projects with namespace usage: {summary.ProjectsWithNamespaceUsage}");
+        builder.AppendLine($"Projects where already global: {summary.ProjectsAlreadyGlobal}");
+        return builder.ToString().TrimEnd();
+    }
+
+    private static string GenerateNamespaceMarkdown(NamespaceReportSummary summary)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("# Namespace Report");
+        builder.AppendLine();
+        builder.AppendLine($"- Namespace: `{summary.Namespace}`");
+        builder.AppendLine($"- Files using namespace: {summary.FilesUsingNamespace}");
+        builder.AppendLine($"- Total C# files analyzed: {summary.TotalCSharpFilesAnalyzed}");
+        builder.AppendLine($"- Usage percentage: {summary.UsagePercentage:F2}%");
+        builder.AppendLine($"- Projects with namespace usage: {summary.ProjectsWithNamespaceUsage}");
+        builder.AppendLine($"- Projects where already global: {summary.ProjectsAlreadyGlobal}");
+        return builder.ToString().TrimEnd();
+    }
 
     private static string GenerateJson(AnalysisResult result, bool summaryOnly) =>
         summaryOnly

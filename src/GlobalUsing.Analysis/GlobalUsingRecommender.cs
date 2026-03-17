@@ -9,9 +9,11 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
     {
         var alreadyGlobal = snapshot.ExistingGlobalUsings.ToImmutableHashSet();
         var usageLookup = snapshot.LocalUsages.ToDictionary(metric => metric.Signature);
+        var forcedSignature = TryCreateForcedSignature(options.TargetNamespace);
         var signatures = snapshot.LocalUsages
             .Select(metric => metric.Signature)
             .Concat(snapshot.ExistingGlobalUsings)
+            .Concat(forcedSignature is null ? [] : [forcedSignature])
             .Distinct()
             .OrderBy(signature => signature, UsingSignatureComparer.Instance)
             .ToImmutableArray();
@@ -24,7 +26,7 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
                 var percentage = metric?.Percentage ?? 0d;
                 var status = alreadyGlobal.Contains(signature)
                     ? RecommendationStatus.AlreadyGlobal
-                    : IsCandidate(metric, options)
+                    : IsCandidate(metric, options) || IsForcedCandidate(signature, metric, forcedSignature)
                         ? RecommendationStatus.CandidateForGlobal
                         : RecommendationStatus.KeepLocal;
 
@@ -34,7 +36,7 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
 
         var candidates = snapshot.LocalUsages
             .Where(metric => !alreadyGlobal.Contains(metric.Signature))
-            .Where(metric => IsCandidate(metric, options))
+            .Where(metric => IsCandidate(metric, options) || IsForcedCandidate(metric.Signature, metric, forcedSignature))
             .OrderBy(metric => metric.Signature, UsingSignatureComparer.Instance)
             .Select(metric => new PromotionCandidate(metric.Signature, metric.FileCount, metric.TotalFiles, metric.Percentage))
             .ToImmutableArray();
@@ -60,4 +62,12 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
         metric is not null
         && metric.FileCount >= options.MinFiles
         && metric.Percentage >= options.ThresholdPercentage;
+
+    private static bool IsForcedCandidate(UsingSignature signature, NamespaceUsageMetric? metric, UsingSignature? forcedSignature) =>
+        forcedSignature is not null
+        && metric is not null
+        && UsingSignatureComparer.Instance.Equals(signature, forcedSignature);
+
+    private static UsingSignature? TryCreateForcedSignature(string? targetNamespace) =>
+        string.IsNullOrWhiteSpace(targetNamespace) ? null : new UsingSignature(targetNamespace.Trim(), UsingKind.Normal);
 }

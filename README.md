@@ -101,6 +101,12 @@ Show only the summary section:
 globalusing report --path ./src/MyProject --summary-only
 ```
 
+Show usage summary for a single namespace:
+
+```bash
+globalusing report --path ./src/MyProject --namespace System.Linq
+```
+
 ### `apply`
 
 Analyzes files, updates the global usings file, and removes matching redundant local usings when safe.
@@ -111,6 +117,12 @@ Example:
 globalusing apply --path ./src/MyProject --global-file GlobalUsings.cs
 ```
 
+Apply changes only for one namespace, even below the threshold:
+
+```bash
+globalusing apply --path ./src/MyProject --namespace System.Linq
+```
+
 ## Options
 
 - `--path <path>`: path to a `.csproj`, `.sln`, `.slnx`, or directory. Default: current directory.
@@ -119,6 +131,7 @@ globalusing apply --path ./src/MyProject --global-file GlobalUsings.cs
 - `--global-file <name>`: name of the global usings file. Default: `GlobalUsings.cs`.
 - `--format <console|json|markdown>`: report output format. Default: `console`.
 - `--exclude <pattern>`: glob pattern to exclude files or directories. Repeatable.
+- `--namespace <name>`: in `report`, focus output on one namespace; in `apply`, work only with that namespace and promote it to the global usings file when it appears locally, even if it is below the threshold.
 - `--include-static`: include `using static` directives in analysis.
 - `--include-alias`: include alias usings in analysis.
 - `--summary-only`: display only the summary section or object.
@@ -155,6 +168,12 @@ Include alias and static usings:
 
 ```bash
 globalusing report --path . --include-alias --include-static
+```
+
+Inspect one namespace across the analyzed files:
+
+```bash
+globalusing report --path . --namespace System.Linq
 ```
 
 Preview apply results as JSON:
