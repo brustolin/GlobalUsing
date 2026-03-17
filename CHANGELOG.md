@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - 2026-03-17
 
 - Added a `--summary-only` option to the `report` command to print only the summary section instead of every project's namespace usage details.
 - Added a `--namespace` option to focus report output on one namespace and make `apply` operate only on that namespace, including promotion below the normal threshold.
