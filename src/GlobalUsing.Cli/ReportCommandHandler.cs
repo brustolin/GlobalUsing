@@ -14,7 +14,7 @@ internal sealed class ReportCommandHandler(
         try
         {
             var result = await analysisWorkflow.ReportAsync(options, cancellationToken);
-            consoleWriter.WriteLine(reportGenerator.Generate(result, options.Format));
+            consoleWriter.WriteLine(reportGenerator.Generate(result, options.Format, options.SummaryOnly));
             return result.Summary.CandidatesAboveThreshold > 0 ? CliExitCodes.CandidatesDetected : CliExitCodes.Success;
         }
         catch (Exception exception)

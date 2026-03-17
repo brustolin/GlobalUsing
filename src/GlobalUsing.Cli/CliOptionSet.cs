@@ -20,6 +20,8 @@ internal sealed class CliOptionSet
 
     public Option<bool> IncludeAliasOption { get; } = CreateOption<bool>("--include-alias", "Include alias using directives in analysis.");
 
+    public Option<bool> SummaryOnlyOption { get; } = CreateOption<bool>("--summary-only", "Display only the summary section of the report output.");
+
     public Option<bool> DryRunOption { get; } = CreateOption<bool>("--dry-run", "Show planned changes without writing files.");
 
     public Option<bool> VerboseOption { get; } = CreateOption<bool>("--verbose", "Enable verbose logging.");
@@ -34,6 +36,7 @@ internal sealed class CliOptionSet
         command.Options.Add(ExcludeOption);
         command.Options.Add(IncludeStaticOption);
         command.Options.Add(IncludeAliasOption);
+        command.Options.Add(SummaryOnlyOption);
         command.Options.Add(DryRunOption);
         command.Options.Add(VerboseOption);
     }

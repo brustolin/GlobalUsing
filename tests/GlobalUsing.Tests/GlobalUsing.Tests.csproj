@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\GlobalUsing.Analysis\GlobalUsing.Analysis.csproj" />
     <ProjectReference Include="..\..\src\GlobalUsing.Roslyn\GlobalUsing.Roslyn.csproj" />
     <ProjectReference Include="..\..\src\GlobalUsing.Infrastructure\GlobalUsing.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\GlobalUsing.Cli\GlobalUsing.Cli.csproj" />
   </ItemGroup>
 
 </Project>

@@ -95,6 +95,12 @@ Example:
 globalusing report --path ./src/MyProject --threshold 80 --format markdown
 ```
 
+Show only the summary section:
+
+```bash
+globalusing report --path ./src/MyProject --summary-only
+```
+
 ### `apply`
 
 Analyzes files, updates the global usings file, and removes matching redundant local usings when safe.
@@ -115,6 +121,7 @@ globalusing apply --path ./src/MyProject --global-file GlobalUsings.cs
 - `--exclude <pattern>`: glob pattern to exclude files or directories. Repeatable.
 - `--include-static`: include `using static` directives in analysis.
 - `--include-alias`: include alias usings in analysis.
+- `--summary-only`: display only the summary section or object.
 - `--dry-run`: show planned changes without writing files.
 - `--verbose`: enable detailed logging.
 

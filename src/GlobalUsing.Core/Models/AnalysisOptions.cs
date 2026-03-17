@@ -11,6 +11,7 @@ public sealed record AnalysisOptions(
     IReadOnlyList<string> ExcludePatterns,
     bool IncludeStatic,
     bool IncludeAlias,
+    bool SummaryOnly,
     bool DryRun,
     bool Verbose)
 {
@@ -24,6 +25,7 @@ public sealed record AnalysisOptions(
             ExcludePatterns: [],
             IncludeStatic: false,
             IncludeAlias: false,
+            SummaryOnly: false,
             DryRun: false,
             Verbose: false);
 }

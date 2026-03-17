@@ -8,18 +8,28 @@ namespace GlobalUsing.Infrastructure;
 
 public sealed class ReportGenerator : IReportGenerator
 {
-    public string Generate(AnalysisResult result, ReportFormat format) =>
+    public string Generate(AnalysisResult result, ReportFormat format, bool summaryOnly = false) =>
         format switch
         {
-            ReportFormat.Json => JsonSerializer.Serialize(result, InfrastructureJsonSerializerContext.Default.AnalysisResult),
-            ReportFormat.Markdown => GenerateMarkdown(result),
-            _ => GenerateConsole(result),
+            ReportFormat.Json => GenerateJson(result, summaryOnly),
+            ReportFormat.Markdown => GenerateMarkdown(result, summaryOnly),
+            _ => GenerateConsole(result, summaryOnly),
         };
 
-    private static string GenerateConsole(AnalysisResult result)
+    private static string GenerateJson(AnalysisResult result, bool summaryOnly) =>
+        summaryOnly
+            ? JsonSerializer.Serialize(result.Summary, InfrastructureJsonSerializerContext.Default.AnalysisSummary)
+            : JsonSerializer.Serialize(result, InfrastructureJsonSerializerContext.Default.AnalysisResult);
+
+    private static string GenerateConsole(AnalysisResult result, bool summaryOnly)
     {
         var builder = new StringBuilder();
         AppendSummary(builder, result.Summary);
+
+        if (summaryOnly)
+        {
+            return builder.ToString().TrimEnd();
+        }
 
         foreach (var project in result.Projects)
         {
@@ -38,12 +48,17 @@ public sealed class ReportGenerator : IReportGenerator
         return builder.ToString().TrimEnd();
     }
 
-    private static string GenerateMarkdown(AnalysisResult result)
+    private static string GenerateMarkdown(AnalysisResult result, bool summaryOnly)
     {
         var builder = new StringBuilder();
         builder.AppendLine("# GlobalUsing Report");
         builder.AppendLine();
         AppendSummary(builder, result.Summary, markdown: true);
+
+        if (summaryOnly)
+        {
+            return builder.ToString().TrimEnd();
+        }
 
         foreach (var project in result.Projects)
         {

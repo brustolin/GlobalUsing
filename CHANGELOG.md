@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Added a `--summary-only` option to the `report` command to print only the summary section instead of every project's namespace usage details.
+
 ## [0.1.1] - 2026-03-15
 
 - Fix `Usage` message to reflect to correct binary name.

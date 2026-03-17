@@ -18,6 +18,7 @@ internal static class OptionMapper
             ExcludePatterns: parseResult.GetValue(optionSet.ExcludeOption) ?? [],
             IncludeStatic: parseResult.GetValue(optionSet.IncludeStaticOption),
             IncludeAlias: parseResult.GetValue(optionSet.IncludeAliasOption),
+            SummaryOnly: parseResult.GetValue(optionSet.SummaryOnlyOption),
             DryRun: parseResult.GetValue(optionSet.DryRunOption),
             Verbose: parseResult.GetValue(optionSet.VerboseOption));
     }

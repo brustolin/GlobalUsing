@@ -16,7 +16,7 @@ internal sealed class ApplyCommandHandler(
             var result = await analysisWorkflow.ApplyAsync(options, cancellationToken);
             if (options.Format != GlobalUsing.Core.Enums.ReportFormat.Console)
             {
-                consoleWriter.WriteLine(reportGenerator.Generate(result.AnalysisResult, options.Format));
+                consoleWriter.WriteLine(reportGenerator.Generate(result.AnalysisResult, options.Format, options.SummaryOnly));
                 consoleWriter.WriteLine(string.Empty);
             }
 
