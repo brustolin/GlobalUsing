@@ -113,6 +113,12 @@ Show usage summaries for multiple namespaces:
 globalusing report --path ./src/MyProject --namespace System.Linq --namespace System.Text.Json
 ```
 
+Run a normal report but force selected namespaces to show as candidates:
+
+```bash
+globalusing report --path ./src/MyProject --move System.Linq --move System.Text.Json
+```
+
 ### `apply`
 
 Analyzes files, updates the global usings file, and removes matching redundant local usings when safe.
@@ -129,6 +135,12 @@ Apply changes only for selected namespaces, even below the threshold:
 globalusing apply --path ./src/MyProject --namespace System.Linq --namespace System.Text.Json
 ```
 
+Run a normal apply, but force selected namespaces into the global usings file regardless of threshold:
+
+```bash
+globalusing apply --path ./src/MyProject --move System.Linq --move System.Text.Json
+```
+
 ## Options
 
 - `--path <path>`: path to a `.csproj`, `.sln`, `.slnx`, or directory. Default: current directory.
@@ -138,6 +150,7 @@ globalusing apply --path ./src/MyProject --namespace System.Linq --namespace Sys
 - `--format <console|json|markdown>`: report output format. Default: `console`.
 - `--exclude <pattern>`: glob pattern to exclude files or directories. Repeatable.
 - `--namespace <name>`: in `report`, focus output on one or more namespaces; in `apply`, work only with the selected namespaces and promote them to the global usings file when they appear locally, even if they are below the threshold. Repeat the option to target more than one namespace.
+- `--move <name>`: in `report`, keep the normal full report but mark the selected namespaces as candidates even below the threshold; in `apply`, keep the normal full apply behavior but also force the selected namespaces into global usings. Repeat the option to target more than one namespace.
 - `--include-static`: include `using static` directives in analysis.
 - `--include-alias`: include alias usings in analysis.
 - `--summary-only`: display only the summary section or object.
@@ -186,6 +199,12 @@ Inspect multiple namespaces across the analyzed files:
 
 ```bash
 globalusing report --path . --namespace System.Linq --namespace System.Text.Json
+```
+
+Keep the full run but force selected namespaces:
+
+```bash
+globalusing apply --path . --move System.Linq --move System.Text.Json
 ```
 
 Preview apply results as JSON:

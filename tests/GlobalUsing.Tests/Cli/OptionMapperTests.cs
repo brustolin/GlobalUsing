@@ -30,4 +30,17 @@ public sealed class OptionMapperTests
 
         Assert.Equal(["System.Linq", "System.Text.Json"], mapped.TargetNamespaces);
     }
+
+    [Fact]
+    public void Map_sets_move_namespaces_when_option_is_present_more_than_once()
+    {
+        var options = new CliOptionSet();
+        var command = new Command("apply");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--move", " System.Linq ", "--move", "System.Text.Json", "--move", "System.Linq"]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(["System.Linq", "System.Text.Json"], mapped.MoveNamespaces);
+    }
 }

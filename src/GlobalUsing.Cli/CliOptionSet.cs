@@ -18,6 +18,8 @@ internal sealed class CliOptionSet
 
     public Option<string[]> NamespaceOption { get; } = CreateRepeatableStringOption("--namespace", "Namespace to focus the report on or force into global usings during apply. Repeat the option to target more than one namespace.");
 
+    public Option<string[]> MoveOption { get; } = CreateRepeatableStringOption("--move", "Namespace to force into global usings while still processing all other namespaces normally. Repeat the option to move more than one namespace.");
+
     public Option<bool> IncludeStaticOption { get; } = CreateOption<bool>("--include-static", "Include using static directives in analysis.");
 
     public Option<bool> IncludeAliasOption { get; } = CreateOption<bool>("--include-alias", "Include alias using directives in analysis.");
@@ -37,6 +39,7 @@ internal sealed class CliOptionSet
         command.Options.Add(FormatOption);
         command.Options.Add(ExcludeOption);
         command.Options.Add(NamespaceOption);
+        command.Options.Add(MoveOption);
         command.Options.Add(IncludeStaticOption);
         command.Options.Add(IncludeAliasOption);
         command.Options.Add(SummaryOnlyOption);

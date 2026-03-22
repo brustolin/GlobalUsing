@@ -9,7 +9,7 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
     {
         var alreadyGlobal = snapshot.ExistingGlobalUsings.ToImmutableHashSet();
         var usageLookup = snapshot.LocalUsages.ToDictionary(metric => metric.Signature);
-        var forcedSignatures = CreateForcedSignatures(options.TargetNamespaces);
+        var forcedSignatures = CreateForcedSignatures(options.TargetNamespaces, options.MoveNamespaces);
         var signatures = snapshot.LocalUsages
             .Select(metric => metric.Signature)
             .Concat(snapshot.ExistingGlobalUsings)
@@ -67,8 +67,11 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
         metric is not null
         && forcedSignatures.Contains(signature);
 
-    private static ImmutableHashSet<UsingSignature> CreateForcedSignatures(IReadOnlyList<string> targetNamespaces) =>
+    private static ImmutableHashSet<UsingSignature> CreateForcedSignatures(
+        IReadOnlyList<string> targetNamespaces,
+        IReadOnlyList<string> moveNamespaces) =>
         targetNamespaces
+            .Concat(moveNamespaces)
             .Select(targetNamespace => new UsingSignature(targetNamespace, UsingKind.Normal))
             .ToImmutableHashSet(UsingSignatureComparer.Instance);
 }

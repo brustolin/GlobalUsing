@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 - Updated `--namespace` to accept repeated values so multiple namespaces can be forced into global usings in a single run.
+- Added a repeatable `--move` option to force selected namespaces into global usings while keeping normal report/apply behavior for everything else.
 
 ## [0.2.0] - 2026-03-17
 

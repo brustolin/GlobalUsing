@@ -17,6 +17,7 @@ internal static class OptionMapper
             Format: ParseFormat(formatValue),
             ExcludePatterns: parseResult.GetValue(optionSet.ExcludeOption) ?? [],
             TargetNamespaces: NormalizeNamespaces(parseResult.GetValue(optionSet.NamespaceOption)),
+            MoveNamespaces: NormalizeNamespaces(parseResult.GetValue(optionSet.MoveOption)),
             IncludeStatic: parseResult.GetValue(optionSet.IncludeStaticOption),
             IncludeAlias: parseResult.GetValue(optionSet.IncludeAliasOption),
             SummaryOnly: parseResult.GetValue(optionSet.SummaryOnlyOption),

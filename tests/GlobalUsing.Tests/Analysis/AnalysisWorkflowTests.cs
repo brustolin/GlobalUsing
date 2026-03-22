@@ -9,6 +9,62 @@ namespace GlobalUsing.Tests.Analysis;
 public sealed class AnalysisWorkflowTests
 {
     [Fact]
+    public async Task ApplyAsync_with_move_namespaces_forces_selected_namespaces_while_keeping_normal_candidates()
+    {
+        using var temporaryDirectory = TemporaryDirectory.Create();
+        var root = temporaryDirectory.Path;
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "App.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ImplicitUsings>disable</ImplicitUsings></PropertyGroup></Project>");
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "Program.cs"),
+            """
+            using System.Linq;
+            using System.Text.Json;
+            using System.Net.Http;
+
+            namespace Demo;
+            """);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "Other.cs"),
+            """
+            using System.Linq;
+
+            namespace Demo;
+            """);
+
+        var fileSystem = new PhysicalFileSystem();
+        var workflow = new AnalysisWorkflow(
+            new FileDiscoveryService(fileSystem, NullLogger<FileDiscoveryService>.Instance),
+            new CachingUsingCollector(new SourceDocumentCache(fileSystem), NullLogger<CachingUsingCollector>.Instance),
+            new NamespaceUsageAnalyzer(),
+            new GlobalUsingRecommender(),
+            new GlobalUsingsWriter(fileSystem),
+            new SourceFileRewriter(new SourceDocumentCache(fileSystem)),
+            fileSystem,
+            NullLogger<AnalysisWorkflow>.Instance);
+        var options = AnalysisOptions.Default(root) with
+        {
+            ThresholdPercentage = 100,
+            MinFiles = 2,
+            MoveNamespaces = ["System.Text.Json"],
+        };
+
+        var result = await workflow.ApplyAsync(options, CancellationToken.None);
+
+        var globalUsingsPath = Path.Combine(root, "GlobalUsings.cs");
+        Assert.True(File.Exists(globalUsingsPath));
+        await AssertFileContainsAsync(globalUsingsPath, "global using System.Linq;");
+        await AssertFileContainsAsync(globalUsingsPath, "global using System.Text.Json;");
+        await AssertFileDoesNotContainAsync(globalUsingsPath, "global using System.Net.Http;");
+        await AssertFileDoesNotContainAsync(Path.Combine(root, "Program.cs"), "using System.Linq;");
+        await AssertFileDoesNotContainAsync(Path.Combine(root, "Program.cs"), "using System.Text.Json;");
+        await AssertFileContainsAsync(Path.Combine(root, "Program.cs"), "using System.Net.Http;");
+        Assert.Contains(result.AnalysisResult.Projects.SelectMany(project => project.PromotionCandidates), candidate => candidate.Signature.Name == "System.Linq");
+        Assert.Contains(result.AnalysisResult.Projects.SelectMany(project => project.PromotionCandidates), candidate => candidate.Signature.Name == "System.Text.Json");
+    }
+
+    [Fact]
     public async Task ApplyAsync_with_target_namespaces_promotes_only_requested_namespaces()
     {
         using var temporaryDirectory = TemporaryDirectory.Create();
