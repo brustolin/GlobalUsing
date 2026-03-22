@@ -22,6 +22,8 @@ internal sealed class CliOptionSet
 
     public Option<string[]> MoveOption { get; } = CreateRepeatableStringOption("--move", "Namespace to force into global usings while still processing all other namespaces normally. Repeat the option to move more than one namespace.");
 
+    public Option<string[]> IgnoreOption { get; } = CreateRepeatableStringOption("--ignore", "Namespace to keep local and never promote to global usings. Repeat the option to ignore more than one namespace.");
+
     public Option<bool> IncludeStaticOption { get; } = CreateOption<bool>("--include-static", "Include using static directives in analysis.");
 
     public Option<bool> IncludeAliasOption { get; } = CreateOption<bool>("--include-alias", "Include alias using directives in analysis.");
@@ -43,6 +45,7 @@ internal sealed class CliOptionSet
         command.Options.Add(ExcludeOption);
         command.Options.Add(NamespaceOption);
         command.Options.Add(MoveOption);
+        command.Options.Add(IgnoreOption);
         command.Options.Add(IncludeStaticOption);
         command.Options.Add(IncludeAliasOption);
         command.Options.Add(SummaryOnlyOption);

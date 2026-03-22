@@ -8,5 +8,6 @@ internal sealed record AnalysisConfigFile(
     string[]? Exclude,
     string[]? Namespace,
     string[]? Move,
+    string[]? Ignore,
     bool? IncludeStatic,
     bool? IncludeAlias);

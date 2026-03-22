@@ -10,10 +10,12 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
         var alreadyGlobal = snapshot.ExistingGlobalUsings.ToImmutableHashSet();
         var usageLookup = snapshot.LocalUsages.ToDictionary(metric => metric.Signature);
         var forcedSignatures = CreateForcedSignatures(options.TargetNamespaces, options.MoveNamespaces);
+        var ignoredSignatures = CreateIgnoredSignatures(options.IgnoreNamespaces);
         var signatures = snapshot.LocalUsages
             .Select(metric => metric.Signature)
             .Concat(snapshot.ExistingGlobalUsings)
             .Concat(forcedSignatures)
+            .Concat(ignoredSignatures)
             .Distinct()
             .OrderBy(signature => signature, UsingSignatureComparer.Instance)
             .ToImmutableArray();
@@ -26,6 +28,8 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
                 var percentage = metric?.Percentage ?? 0d;
                 var status = alreadyGlobal.Contains(signature)
                     ? RecommendationStatus.AlreadyGlobal
+                    : ignoredSignatures.Contains(signature)
+                        ? RecommendationStatus.KeepLocal
                     : IsCandidate(metric, options) || IsForcedCandidate(signature, metric, forcedSignatures)
                         ? RecommendationStatus.CandidateForGlobal
                         : RecommendationStatus.KeepLocal;
@@ -36,6 +40,7 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
 
         var candidates = snapshot.LocalUsages
             .Where(metric => !alreadyGlobal.Contains(metric.Signature))
+            .Where(metric => !ignoredSignatures.Contains(metric.Signature))
             .Where(metric => IsCandidate(metric, options) || IsForcedCandidate(metric.Signature, metric, forcedSignatures))
             .OrderBy(metric => metric.Signature, UsingSignatureComparer.Instance)
             .Select(metric => new PromotionCandidate(metric.Signature, metric.FileCount, metric.TotalFiles, metric.Percentage))
@@ -73,5 +78,10 @@ public sealed class GlobalUsingRecommender : IGlobalUsingRecommender
         targetNamespaces
             .Concat(moveNamespaces)
             .Select(targetNamespace => new UsingSignature(targetNamespace, UsingKind.Normal))
+            .ToImmutableHashSet(UsingSignatureComparer.Instance);
+
+    private static ImmutableHashSet<UsingSignature> CreateIgnoredSignatures(IReadOnlyList<string> ignoreNamespaces) =>
+        ignoreNamespaces
+            .Select(ignoreNamespace => new UsingSignature(ignoreNamespace, UsingKind.Normal))
             .ToImmutableHashSet(UsingSignatureComparer.Instance);
 }

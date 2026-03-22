@@ -78,6 +78,7 @@ Example config:
   "exclude": ["artifacts/**", "samples/**"],
   "namespace": ["System.Linq"],
   "move": ["System.Text.Json"],
+  "ignore": ["System.Net.Http"],
   "includeStatic": false,
   "includeAlias": false
 }
@@ -182,6 +183,7 @@ globalusing apply --path ./src/MyProject --move System.Linq --move System.Text.J
 - `--exclude <pattern>`: glob pattern to exclude files or directories. Repeatable.
 - `--namespace <name>`: in `report`, focus output on one or more namespaces; in `apply`, work only with the selected namespaces and promote them to the global usings file when they appear locally, even if they are below the threshold. Repeat the option to target more than one namespace.
 - `--move <name>`: in `report`, keep the normal full report but mark the selected namespaces as candidates even below the threshold; in `apply`, keep the normal full apply behavior but also force the selected namespaces into global usings. Repeat the option to target more than one namespace.
+- `--ignore <name>`: keep the selected namespaces local and never promote them to global usings, even if they meet the threshold or are also passed via `--move`. Repeat the option to ignore more than one namespace.
 - `--include-static`: include `using static` directives in analysis.
 - `--include-alias`: include alias usings in analysis.
 - `--summary-only`: display only the summary section or object.

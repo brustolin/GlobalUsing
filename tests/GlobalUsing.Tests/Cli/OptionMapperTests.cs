@@ -45,6 +45,19 @@ public sealed class OptionMapperTests
     }
 
     [Fact]
+    public void Map_sets_ignore_namespaces_when_option_is_present_more_than_once()
+    {
+        var options = new CliOptionSet();
+        var command = new Command("apply");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--ignore", " System.Linq ", "--ignore", "System.Text.Json", "--ignore", "System.Linq"]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(["System.Linq", "System.Text.Json"], mapped.IgnoreNamespaces);
+    }
+
+    [Fact]
     public void Map_loads_values_from_explicit_config_file()
     {
         using var temporaryDirectory = TemporaryDirectory.Create();
@@ -59,6 +72,7 @@ public sealed class OptionMapperTests
               "format": "markdown",
               "exclude": ["artifacts/**"],
               "move": ["System.Text.Json"],
+              "ignore": ["System.Net.Http"],
               "includeStatic": true,
               "includeAlias": true
             }
@@ -76,6 +90,7 @@ public sealed class OptionMapperTests
         Assert.Equal(GlobalUsing.Core.Enums.ReportFormat.Markdown, mapped.Format);
         Assert.Equal(["artifacts/**"], mapped.ExcludePatterns);
         Assert.Equal(["System.Text.Json"], mapped.MoveNamespaces);
+        Assert.Equal(["System.Net.Http"], mapped.IgnoreNamespaces);
         Assert.True(mapped.IncludeStatic);
         Assert.True(mapped.IncludeAlias);
         Assert.Equal(Path.GetFullPath(configPath), mapped.ConfigPath);
@@ -119,6 +134,7 @@ public sealed class OptionMapperTests
             {
               "threshold": 77,
               "move": ["System.Text.Json"],
+              "ignore": ["System.Net.Http"],
               "includeStatic": false
             }
             """);
@@ -131,6 +147,7 @@ public sealed class OptionMapperTests
 
         Assert.Equal(95, mapped.ThresholdPercentage);
         Assert.Equal(["System.Linq"], mapped.MoveNamespaces);
+        Assert.Equal(["System.Net.Http"], mapped.IgnoreNamespaces);
         Assert.True(mapped.IncludeStatic);
     }
 

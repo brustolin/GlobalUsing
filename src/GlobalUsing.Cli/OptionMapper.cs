@@ -16,6 +16,7 @@ internal static class OptionMapper
         var config = LoadConfig(configPath);
         var targetNamespaces = GetConfiguredList(parseResult, optionSet.NamespaceOption, config?.Namespace);
         var moveNamespaces = GetConfiguredList(parseResult, optionSet.MoveOption, config?.Move);
+        var ignoreNamespaces = GetConfiguredList(parseResult, optionSet.IgnoreOption, config?.Ignore);
         var warnings = new List<string>();
 
         if (targetNamespaces.Length > 0 && moveNamespaces.Length > 0)
@@ -34,6 +35,7 @@ internal static class OptionMapper
             ConfigPath: configPath,
             TargetNamespaces: targetNamespaces,
             MoveNamespaces: moveNamespaces,
+            IgnoreNamespaces: ignoreNamespaces,
             Warnings: warnings,
             IncludeStatic: GetConfiguredFlag(parseResult, optionSet.IncludeStaticOption, config?.IncludeStatic),
             IncludeAlias: GetConfiguredFlag(parseResult, optionSet.IncludeAliasOption, config?.IncludeAlias),
@@ -130,7 +132,7 @@ internal static class OptionMapper
         {
             var content = File.ReadAllText(configPath);
             return JsonSerializer.Deserialize(content, AnalysisConfigJsonSerializerContext.Default.AnalysisConfigFile)
-                ?? new AnalysisConfigFile(null, null, null, null, null, null, null, null, null);
+                ?? new AnalysisConfigFile(null, null, null, null, null, null, null, null, null, null);
         }
         catch (JsonException exception)
         {
