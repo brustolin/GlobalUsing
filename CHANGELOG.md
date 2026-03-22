@@ -1,5 +1,8 @@
 # Changelog
 
+## [Unreleased]
+- Updated `--namespace` to accept repeated values so multiple namespaces can be forced into global usings in a single run.
+
 ## [0.2.0] - 2026-03-17
 
 - Added a `--summary-only` option to the `report` command to print only the summary section instead of every project's namespace usage details.

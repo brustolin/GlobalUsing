@@ -13,7 +13,7 @@ public sealed class ReportGeneratorTests
     {
         var generator = new ReportGenerator();
 
-        var report = generator.Generate(CreateAnalysisResult(), ReportFormat.Console, targetNamespace: "System.Linq");
+        var report = generator.Generate(CreateAnalysisResult(), ReportFormat.Console, targetNamespaces: ["System.Linq"]);
 
         Assert.Contains("Namespace Summary", report);
         Assert.Contains("Namespace: System.Linq", report);
@@ -64,13 +64,27 @@ public sealed class ReportGeneratorTests
     {
         var generator = new ReportGenerator();
 
-        var report = generator.Generate(CreateAnalysisResult(), ReportFormat.Json, targetNamespace: "System.Linq");
+        var report = generator.Generate(CreateAnalysisResult(), ReportFormat.Json, targetNamespaces: ["System.Linq"]);
         var summary = JsonSerializer.Deserialize<NamespaceReportSummary>(report);
 
         Assert.NotNull(summary);
         Assert.Equal("System.Linq", summary.Namespace);
         Assert.Equal(3, summary.FilesUsingNamespace);
         Assert.Equal(100, summary.UsagePercentage);
+    }
+
+    [Fact]
+    public void Generate_json_with_multiple_target_namespaces_serializes_namespace_summaries()
+    {
+        var generator = new ReportGenerator();
+
+        var report = generator.Generate(CreateAnalysisResult(), ReportFormat.Json, targetNamespaces: ["System.Linq", "System.Text.Json"]);
+        var summaries = JsonSerializer.Deserialize<NamespaceReportSummary[]>(report);
+
+        Assert.NotNull(summaries);
+        Assert.Equal(2, summaries.Length);
+        Assert.Contains(summaries, summary => summary.Namespace == "System.Linq" && summary.FilesUsingNamespace == 3);
+        Assert.Contains(summaries, summary => summary.Namespace == "System.Text.Json" && summary.FilesUsingNamespace == 1);
     }
 
     private static AnalysisResult CreateAnalysisResult()
@@ -94,6 +108,12 @@ public sealed class ReportGeneratorTests
                     TotalFiles: 3,
                     Percentage: 100,
                     Status: RecommendationStatus.CandidateForGlobal),
+                new NamespaceUsage(
+                    new UsingSignature("System.Text.Json", UsingKind.Normal),
+                    FileCount: 1,
+                    TotalFiles: 3,
+                    Percentage: 33.33,
+                    Status: RecommendationStatus.KeepLocal),
             ],
             PromotionCandidates:
             [

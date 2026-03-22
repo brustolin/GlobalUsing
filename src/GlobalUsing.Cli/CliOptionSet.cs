@@ -16,7 +16,7 @@ internal sealed class CliOptionSet
 
     public Option<string[]> ExcludeOption { get; } = CreateExcludeOption();
 
-    public Option<string?> NamespaceOption { get; } = CreateOption<string?>("--namespace", "Namespace to focus the report on or force into global usings during apply.");
+    public Option<string[]> NamespaceOption { get; } = CreateRepeatableStringOption("--namespace", "Namespace to focus the report on or force into global usings during apply. Repeat the option to target more than one namespace.");
 
     public Option<bool> IncludeStaticOption { get; } = CreateOption<bool>("--include-static", "Include using static directives in analysis.");
 
@@ -53,12 +53,13 @@ internal sealed class CliOptionSet
 
     private static Option<string[]> CreateExcludeOption()
     {
-        var option = new Option<string[]>("--exclude")
+        return CreateRepeatableStringOption("--exclude", "Glob pattern to exclude files or directories.");
+    }
+
+    private static Option<string[]> CreateRepeatableStringOption(string name, string description) =>
+        new(name)
         {
-            Description = "Glob pattern to exclude files or directories.",
+            Description = description,
             AllowMultipleArgumentsPerToken = false,
         };
-
-        return option;
-    }
 }

@@ -9,7 +9,7 @@ namespace GlobalUsing.Tests.Analysis;
 public sealed class AnalysisWorkflowTests
 {
     [Fact]
-    public async Task ApplyAsync_with_target_namespace_promotes_only_requested_namespace()
+    public async Task ApplyAsync_with_target_namespaces_promotes_only_requested_namespaces()
     {
         using var temporaryDirectory = TemporaryDirectory.Create();
         var root = temporaryDirectory.Path;
@@ -21,6 +21,7 @@ public sealed class AnalysisWorkflowTests
             """
             using System.Linq;
             using System.Text.Json;
+            using System.Net.Http;
 
             namespace Demo;
             """);
@@ -28,6 +29,7 @@ public sealed class AnalysisWorkflowTests
             Path.Combine(root, "Other.cs"),
             """
             using System.Text.Json;
+            using System.Net.Http;
 
             namespace Demo;
             """);
@@ -46,7 +48,7 @@ public sealed class AnalysisWorkflowTests
         {
             ThresholdPercentage = 100,
             MinFiles = 2,
-            TargetNamespace = "System.Linq",
+            TargetNamespaces = ["System.Linq", "System.Text.Json"],
         };
 
         var result = await workflow.ApplyAsync(options, CancellationToken.None);
@@ -54,11 +56,15 @@ public sealed class AnalysisWorkflowTests
         var globalUsingsPath = Path.Combine(root, "GlobalUsings.cs");
         Assert.True(File.Exists(globalUsingsPath));
         await AssertFileContainsAsync(globalUsingsPath, "global using System.Linq;");
-        await AssertFileDoesNotContainAsync(globalUsingsPath, "global using System.Text.Json;");
+        await AssertFileContainsAsync(globalUsingsPath, "global using System.Text.Json;");
+        await AssertFileDoesNotContainAsync(globalUsingsPath, "global using System.Net.Http;");
         await AssertFileDoesNotContainAsync(Path.Combine(root, "Program.cs"), "using System.Linq;");
-        await AssertFileContainsAsync(Path.Combine(root, "Program.cs"), "using System.Text.Json;");
-        await AssertFileContainsAsync(Path.Combine(root, "Other.cs"), "using System.Text.Json;");
+        await AssertFileDoesNotContainAsync(Path.Combine(root, "Program.cs"), "using System.Text.Json;");
+        await AssertFileContainsAsync(Path.Combine(root, "Program.cs"), "using System.Net.Http;");
+        await AssertFileDoesNotContainAsync(Path.Combine(root, "Other.cs"), "using System.Text.Json;");
+        await AssertFileContainsAsync(Path.Combine(root, "Other.cs"), "using System.Net.Http;");
         Assert.Contains(result.AnalysisResult.Projects.SelectMany(project => project.PromotionCandidates), candidate => candidate.Signature.Name == "System.Linq");
+        Assert.Contains(result.AnalysisResult.Projects.SelectMany(project => project.PromotionCandidates), candidate => candidate.Signature.Name == "System.Text.Json");
     }
 
     private static async Task AssertFileContainsAsync(string path, string expected)

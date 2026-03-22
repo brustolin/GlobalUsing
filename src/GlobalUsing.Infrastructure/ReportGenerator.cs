@@ -9,11 +9,13 @@ namespace GlobalUsing.Infrastructure;
 
 public sealed class ReportGenerator : IReportGenerator
 {
-    public string Generate(AnalysisResult result, ReportFormat format, bool summaryOnly = false, string? targetNamespace = null)
+    public string Generate(AnalysisResult result, ReportFormat format, bool summaryOnly = false, IReadOnlyList<string>? targetNamespaces = null)
     {
-        if (!string.IsNullOrWhiteSpace(targetNamespace))
+        var normalizedTargetNamespaces = NormalizeTargetNamespaces(targetNamespaces);
+
+        if (normalizedTargetNamespaces.Length > 0)
         {
-            return GenerateNamespaceReport(result, format, targetNamespace);
+            return GenerateNamespaceReport(result, format, normalizedTargetNamespaces);
         }
 
         return format switch
@@ -24,31 +26,35 @@ public sealed class ReportGenerator : IReportGenerator
         };
     }
 
-    private static string GenerateNamespaceReport(AnalysisResult result, ReportFormat format, string targetNamespace)
+    private static string GenerateNamespaceReport(AnalysisResult result, ReportFormat format, IReadOnlyList<string> targetNamespaces)
     {
-        var summary = BuildNamespaceSummary(result, targetNamespace);
+        var summaries = BuildNamespaceSummaries(result, targetNamespaces);
 
         return format switch
         {
-            ReportFormat.Json => JsonSerializer.Serialize(summary, InfrastructureJsonSerializerContext.Default.NamespaceReportSummary),
-            ReportFormat.Markdown => GenerateNamespaceMarkdown(summary),
-            _ => GenerateNamespaceConsole(summary),
+            ReportFormat.Json => GenerateNamespaceJson(summaries),
+            ReportFormat.Markdown => GenerateNamespaceMarkdown(summaries),
+            _ => GenerateNamespaceConsole(summaries),
         };
     }
 
+    private static ImmutableArray<NamespaceReportSummary> BuildNamespaceSummaries(AnalysisResult result, IReadOnlyList<string> targetNamespaces) =>
+        targetNamespaces
+            .Select(targetNamespace => BuildNamespaceSummary(result, targetNamespace))
+            .ToImmutableArray();
+
     private static NamespaceReportSummary BuildNamespaceSummary(AnalysisResult result, string targetNamespace)
     {
-        var normalizedNamespace = targetNamespace.Trim();
         var matchingUsages = result.Projects
             .Select(project => project.NamespaceUsages.FirstOrDefault(usage =>
                 usage.Signature.Kind == UsingKind.Normal
-                && string.Equals(usage.Signature.Name, normalizedNamespace, StringComparison.Ordinal)))
+                && string.Equals(usage.Signature.Name, targetNamespace, StringComparison.Ordinal)))
             .ToImmutableArray();
         var filesUsingNamespace = matchingUsages.Sum(usage => usage?.FileCount ?? 0);
         var totalFiles = result.Summary.TotalCSharpFilesAnalyzed;
 
         return new NamespaceReportSummary(
-            normalizedNamespace,
+            targetNamespace,
             filesUsingNamespace,
             totalFiles,
             totalFiles == 0 ? 0d : Math.Round(filesUsingNamespace * 100d / totalFiles, 2, MidpointRounding.AwayFromZero),
@@ -56,9 +62,50 @@ public sealed class ReportGenerator : IReportGenerator
             matchingUsages.Count(usage => usage?.Status == RecommendationStatus.AlreadyGlobal));
     }
 
-    private static string GenerateNamespaceConsole(NamespaceReportSummary summary)
+    private static string GenerateNamespaceJson(ImmutableArray<NamespaceReportSummary> summaries) =>
+        summaries.Length == 1
+            ? JsonSerializer.Serialize(summaries[0], InfrastructureJsonSerializerContext.Default.NamespaceReportSummary)
+            : JsonSerializer.Serialize(summaries.ToArray(), InfrastructureJsonSerializerContext.Default.NamespaceReportSummaryArray);
+
+    private static string GenerateNamespaceConsole(ImmutableArray<NamespaceReportSummary> summaries)
     {
         var builder = new StringBuilder();
+
+        for (var index = 0; index < summaries.Length; index++)
+        {
+            if (index > 0)
+            {
+                builder.AppendLine();
+            }
+
+            AppendNamespaceSummary(builder, summaries[index]);
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static string GenerateNamespaceMarkdown(ImmutableArray<NamespaceReportSummary> summaries)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine(summaries.Length == 1 ? "# Namespace Report" : "# Namespace Reports");
+
+        foreach (var summary in summaries)
+        {
+            builder.AppendLine();
+            builder.AppendLine($"## `{summary.Namespace}`");
+            builder.AppendLine();
+            builder.AppendLine($"- Files using namespace: {summary.FilesUsingNamespace}");
+            builder.AppendLine($"- Total C# files analyzed: {summary.TotalCSharpFilesAnalyzed}");
+            builder.AppendLine($"- Usage percentage: {summary.UsagePercentage:F2}%");
+            builder.AppendLine($"- Projects with namespace usage: {summary.ProjectsWithNamespaceUsage}");
+            builder.AppendLine($"- Projects where already global: {summary.ProjectsAlreadyGlobal}");
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private static void AppendNamespaceSummary(StringBuilder builder, NamespaceReportSummary summary)
+    {
         builder.AppendLine("Namespace Summary");
         builder.AppendLine($"Namespace: {summary.Namespace}");
         builder.AppendLine($"Files using namespace: {summary.FilesUsingNamespace}");
@@ -66,22 +113,16 @@ public sealed class ReportGenerator : IReportGenerator
         builder.AppendLine($"Usage percentage: {summary.UsagePercentage:F2}%");
         builder.AppendLine($"Projects with namespace usage: {summary.ProjectsWithNamespaceUsage}");
         builder.AppendLine($"Projects where already global: {summary.ProjectsAlreadyGlobal}");
-        return builder.ToString().TrimEnd();
     }
 
-    private static string GenerateNamespaceMarkdown(NamespaceReportSummary summary)
-    {
-        var builder = new StringBuilder();
-        builder.AppendLine("# Namespace Report");
-        builder.AppendLine();
-        builder.AppendLine($"- Namespace: `{summary.Namespace}`");
-        builder.AppendLine($"- Files using namespace: {summary.FilesUsingNamespace}");
-        builder.AppendLine($"- Total C# files analyzed: {summary.TotalCSharpFilesAnalyzed}");
-        builder.AppendLine($"- Usage percentage: {summary.UsagePercentage:F2}%");
-        builder.AppendLine($"- Projects with namespace usage: {summary.ProjectsWithNamespaceUsage}");
-        builder.AppendLine($"- Projects where already global: {summary.ProjectsAlreadyGlobal}");
-        return builder.ToString().TrimEnd();
-    }
+    private static ImmutableArray<string> NormalizeTargetNamespaces(IReadOnlyList<string>? targetNamespaces) =>
+        targetNamespaces is null
+            ? []
+            : targetNamespaces
+                .Where(targetNamespace => !string.IsNullOrWhiteSpace(targetNamespace))
+                .Select(targetNamespace => targetNamespace.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToImmutableArray();
 
     private static string GenerateJson(AnalysisResult result, bool summaryOnly) =>
         summaryOnly

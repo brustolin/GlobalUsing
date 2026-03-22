@@ -107,6 +107,12 @@ Show usage summary for a single namespace:
 globalusing report --path ./src/MyProject --namespace System.Linq
 ```
 
+Show usage summaries for multiple namespaces:
+
+```bash
+globalusing report --path ./src/MyProject --namespace System.Linq --namespace System.Text.Json
+```
+
 ### `apply`
 
 Analyzes files, updates the global usings file, and removes matching redundant local usings when safe.
@@ -117,10 +123,10 @@ Example:
 globalusing apply --path ./src/MyProject --global-file GlobalUsings.cs
 ```
 
-Apply changes only for one namespace, even below the threshold:
+Apply changes only for selected namespaces, even below the threshold:
 
 ```bash
-globalusing apply --path ./src/MyProject --namespace System.Linq
+globalusing apply --path ./src/MyProject --namespace System.Linq --namespace System.Text.Json
 ```
 
 ## Options
@@ -131,7 +137,7 @@ globalusing apply --path ./src/MyProject --namespace System.Linq
 - `--global-file <name>`: name of the global usings file. Default: `GlobalUsings.cs`.
 - `--format <console|json|markdown>`: report output format. Default: `console`.
 - `--exclude <pattern>`: glob pattern to exclude files or directories. Repeatable.
-- `--namespace <name>`: in `report`, focus output on one namespace; in `apply`, work only with that namespace and promote it to the global usings file when it appears locally, even if it is below the threshold.
+- `--namespace <name>`: in `report`, focus output on one or more namespaces; in `apply`, work only with the selected namespaces and promote them to the global usings file when they appear locally, even if they are below the threshold. Repeat the option to target more than one namespace.
 - `--include-static`: include `using static` directives in analysis.
 - `--include-alias`: include alias usings in analysis.
 - `--summary-only`: display only the summary section or object.
@@ -174,6 +180,12 @@ Inspect one namespace across the analyzed files:
 
 ```bash
 globalusing report --path . --namespace System.Linq
+```
+
+Inspect multiple namespaces across the analyzed files:
+
+```bash
+globalusing report --path . --namespace System.Linq --namespace System.Text.Json
 ```
 
 Preview apply results as JSON:

@@ -19,15 +19,15 @@ public sealed class OptionMapperTests
     }
 
     [Fact]
-    public void Map_sets_target_namespace_when_option_is_present()
+    public void Map_sets_target_namespaces_when_option_is_present_more_than_once()
     {
         var options = new CliOptionSet();
         var command = new Command("report");
         options.AddTo(command);
-        var parseResult = command.Parse(["--namespace", " System.Linq "]);
+        var parseResult = command.Parse(["--namespace", " System.Linq ", "--namespace", "System.Text.Json", "--namespace", "System.Linq"]);
 
         var mapped = OptionMapper.Map(parseResult, options);
 
-        Assert.Equal("System.Linq", mapped.TargetNamespace);
+        Assert.Equal(["System.Linq", "System.Text.Json"], mapped.TargetNamespaces);
     }
 }
