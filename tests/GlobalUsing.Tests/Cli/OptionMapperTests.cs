@@ -43,4 +43,159 @@ public sealed class OptionMapperTests
 
         Assert.Equal(["System.Linq", "System.Text.Json"], mapped.MoveNamespaces);
     }
+
+    [Fact]
+    public void Map_loads_values_from_explicit_config_file()
+    {
+        using var temporaryDirectory = TemporaryDirectory.Create();
+        var configPath = Path.Combine(temporaryDirectory.Path, "custom.json");
+        File.WriteAllText(
+            configPath,
+            """
+            {
+              "threshold": 91,
+              "minFiles": 3,
+              "globalFile": "RepoGlobalUsings.cs",
+              "format": "markdown",
+              "exclude": ["artifacts/**"],
+              "move": ["System.Text.Json"],
+              "includeStatic": true,
+              "includeAlias": true
+            }
+            """);
+        var options = new CliOptionSet();
+        var command = new Command("report");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--config", configPath]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(91, mapped.ThresholdPercentage);
+        Assert.Equal(3, mapped.MinFiles);
+        Assert.Equal("RepoGlobalUsings.cs", mapped.GlobalUsingsFileName);
+        Assert.Equal(GlobalUsing.Core.Enums.ReportFormat.Markdown, mapped.Format);
+        Assert.Equal(["artifacts/**"], mapped.ExcludePatterns);
+        Assert.Equal(["System.Text.Json"], mapped.MoveNamespaces);
+        Assert.True(mapped.IncludeStatic);
+        Assert.True(mapped.IncludeAlias);
+        Assert.Equal(Path.GetFullPath(configPath), mapped.ConfigPath);
+    }
+
+    [Fact]
+    public void Map_discovers_config_by_walking_up_from_path()
+    {
+        using var temporaryDirectory = TemporaryDirectory.Create();
+        var root = temporaryDirectory.Path;
+        var projectDirectory = Path.Combine(root, "src", "App");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(
+            Path.Combine(root, "globalusing.json"),
+            """
+            {
+              "threshold": 77,
+              "move": ["System.Text.Json"]
+            }
+            """);
+        var options = new CliOptionSet();
+        var command = new Command("apply");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--path", projectDirectory]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(77, mapped.ThresholdPercentage);
+        Assert.Equal(["System.Text.Json"], mapped.MoveNamespaces);
+        Assert.Equal(Path.Combine(root, "globalusing.json"), mapped.ConfigPath);
+    }
+
+    [Fact]
+    public void Map_prefers_cli_values_over_config_values()
+    {
+        using var temporaryDirectory = TemporaryDirectory.Create();
+        var configPath = Path.Combine(temporaryDirectory.Path, "globalusing.json");
+        File.WriteAllText(
+            configPath,
+            """
+            {
+              "threshold": 77,
+              "move": ["System.Text.Json"],
+              "includeStatic": false
+            }
+            """);
+        var options = new CliOptionSet();
+        var command = new Command("apply");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--config", configPath, "--threshold", "95", "--move", "System.Linq", "--include-static"]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(95, mapped.ThresholdPercentage);
+        Assert.Equal(["System.Linq"], mapped.MoveNamespaces);
+        Assert.True(mapped.IncludeStatic);
+    }
+
+    [Fact]
+    public void Map_warns_and_ignores_move_when_namespace_and_move_are_set_by_cli()
+    {
+        var options = new CliOptionSet();
+        var command = new Command("apply");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--namespace", "System.Linq", "--move", "System.Text.Json"]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(["System.Linq"], mapped.TargetNamespaces);
+        Assert.Empty(mapped.MoveNamespaces);
+        Assert.Single(mapped.Warnings);
+        Assert.Contains("ignored", mapped.Warnings[0], StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Map_warns_and_ignores_move_when_namespace_comes_from_config_and_move_from_cli()
+    {
+        using var temporaryDirectory = TemporaryDirectory.Create();
+        var configPath = Path.Combine(temporaryDirectory.Path, "globalusing.json");
+        File.WriteAllText(
+            configPath,
+            """
+            {
+              "namespace": ["System.Linq"]
+            }
+            """);
+        var options = new CliOptionSet();
+        var command = new Command("apply");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--config", configPath, "--move", "System.Text.Json"]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(["System.Linq"], mapped.TargetNamespaces);
+        Assert.Empty(mapped.MoveNamespaces);
+        Assert.Single(mapped.Warnings);
+    }
+
+    [Fact]
+    public void Map_warns_and_ignores_move_when_both_come_from_config()
+    {
+        using var temporaryDirectory = TemporaryDirectory.Create();
+        var configPath = Path.Combine(temporaryDirectory.Path, "globalusing.json");
+        File.WriteAllText(
+            configPath,
+            """
+            {
+              "namespace": ["System.Linq"],
+              "move": ["System.Text.Json"]
+            }
+            """);
+        var options = new CliOptionSet();
+        var command = new Command("report");
+        options.AddTo(command);
+        var parseResult = command.Parse(["--config", configPath]);
+
+        var mapped = OptionMapper.Map(parseResult, options);
+
+        Assert.Equal(["System.Linq"], mapped.TargetNamespaces);
+        Assert.Empty(mapped.MoveNamespaces);
+        Assert.Single(mapped.Warnings);
+    }
 }

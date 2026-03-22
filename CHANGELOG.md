@@ -3,6 +3,7 @@
 ## [Unreleased]
 - Updated `--namespace` to accept repeated values so multiple namespaces can be forced into global usings in a single run.
 - Added a repeatable `--move` option to force selected namespaces into global usings while keeping normal report/apply behavior for everything else.
+- Added `globalusing.json` config file support with automatic discovery, `--config` override, CLI-over-config precedence, and warnings when `namespace` mode causes `move` values to be ignored.
 
 ## [0.2.0] - 2026-03-17
 

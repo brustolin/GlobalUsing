@@ -57,6 +57,36 @@ If you installed it locally, use:
 dotnet tool run globalusing
 ```
 
+## Configuration
+
+GlobalUsing can load settings from a `globalusing.json` file. By default, the CLI looks for that file starting from the analysis path and then walks upward through parent directories until it finds one.
+
+You can also point to a specific config file:
+
+```bash
+globalusing report --config ./globalusing.json
+```
+
+Example config:
+
+```json
+{
+  "threshold": 80,
+  "minFiles": 2,
+  "globalFile": "GlobalUsings.cs",
+  "format": "console",
+  "exclude": ["artifacts/**", "samples/**"],
+  "namespace": ["System.Linq"],
+  "move": ["System.Text.Json"],
+  "includeStatic": false,
+  "includeAlias": false
+}
+```
+
+CLI arguments take precedence over config values.
+
+If both `namespace` and `move` are provided after config and CLI values are merged, GlobalUsing uses `namespace` mode and ignores `move`, with a warning message.
+
 ## Quick Start
 
 Run a report for the current directory:
@@ -148,6 +178,7 @@ globalusing apply --path ./src/MyProject --move System.Linq --move System.Text.J
 - `--min-files <number>`: minimum number of files that must contain a namespace before promotion.
 - `--global-file <name>`: name of the global usings file. Default: `GlobalUsings.cs`.
 - `--format <console|json|markdown>`: report output format. Default: `console`.
+- `--config <path>`: path to a `globalusing.json` configuration file.
 - `--exclude <pattern>`: glob pattern to exclude files or directories. Repeatable.
 - `--namespace <name>`: in `report`, focus output on one or more namespaces; in `apply`, work only with the selected namespaces and promote them to the global usings file when they appear locally, even if they are below the threshold. Repeat the option to target more than one namespace.
 - `--move <name>`: in `report`, keep the normal full report but mark the selected namespaces as candidates even below the threshold; in `apply`, keep the normal full apply behavior but also force the selected namespaces into global usings. Repeat the option to target more than one namespace.
@@ -205,6 +236,12 @@ Keep the full run but force selected namespaces:
 
 ```bash
 globalusing apply --path . --move System.Linq --move System.Text.Json
+```
+
+Use a config file and override one value from the CLI:
+
+```bash
+globalusing apply --config ./globalusing.json --threshold 90
 ```
 
 Preview apply results as JSON:

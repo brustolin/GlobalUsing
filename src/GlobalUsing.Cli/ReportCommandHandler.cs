@@ -11,6 +11,11 @@ internal sealed class ReportCommandHandler(
 {
     public async Task<int> InvokeAsync(Core.Models.AnalysisOptions options, CancellationToken cancellationToken)
     {
+        foreach (var warning in options.Warnings)
+        {
+            consoleWriter.WriteError($"Warning: {warning}");
+        }
+
         try
         {
             var result = await analysisWorkflow.ReportAsync(options, cancellationToken);

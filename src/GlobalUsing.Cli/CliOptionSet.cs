@@ -14,6 +14,8 @@ internal sealed class CliOptionSet
 
     public Option<string?> FormatOption { get; } = CreateOption<string?>("--format", "Output format: console, json, or markdown.");
 
+    public Option<string?> ConfigOption { get; } = CreateOption<string?>("--config", "Path to a globalusing.json configuration file.");
+
     public Option<string[]> ExcludeOption { get; } = CreateExcludeOption();
 
     public Option<string[]> NamespaceOption { get; } = CreateRepeatableStringOption("--namespace", "Namespace to focus the report on or force into global usings during apply. Repeat the option to target more than one namespace.");
@@ -37,6 +39,7 @@ internal sealed class CliOptionSet
         command.Options.Add(MinFilesOption);
         command.Options.Add(GlobalFileOption);
         command.Options.Add(FormatOption);
+        command.Options.Add(ConfigOption);
         command.Options.Add(ExcludeOption);
         command.Options.Add(NamespaceOption);
         command.Options.Add(MoveOption);

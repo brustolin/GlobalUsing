@@ -1,4 +1,6 @@
 using System.CommandLine;
+using System.CommandLine.Parsing;
+using System.Text.Json;
 using GlobalUsing.Core.Enums;
 using GlobalUsing.Core.Models;
 
@@ -6,20 +8,35 @@ namespace GlobalUsing.Cli;
 
 internal static class OptionMapper
 {
+    private const string DefaultConfigFileName = "globalusing.json";
+
     public static AnalysisOptions Map(ParseResult parseResult, CliOptionSet optionSet)
     {
-        var formatValue = parseResult.GetValue(optionSet.FormatOption);
+        var configPath = ResolveConfigPath(parseResult, optionSet);
+        var config = LoadConfig(configPath);
+        var targetNamespaces = GetConfiguredList(parseResult, optionSet.NamespaceOption, config?.Namespace);
+        var moveNamespaces = GetConfiguredList(parseResult, optionSet.MoveOption, config?.Move);
+        var warnings = new List<string>();
+
+        if (targetNamespaces.Length > 0 && moveNamespaces.Length > 0)
+        {
+            warnings.Add("`--move` values are ignored because `--namespace` scopes the run to specific namespaces.");
+            moveNamespaces = [];
+        }
+
         return new AnalysisOptions(
             Path: parseResult.GetValue(optionSet.PathOption) ?? Environment.CurrentDirectory,
-            ThresholdPercentage: parseResult.GetValue(optionSet.ThresholdOption) ?? 80,
-            MinFiles: parseResult.GetValue(optionSet.MinFilesOption) ?? 1,
-            GlobalUsingsFileName: parseResult.GetValue(optionSet.GlobalFileOption) ?? "GlobalUsings.cs",
-            Format: ParseFormat(formatValue),
-            ExcludePatterns: parseResult.GetValue(optionSet.ExcludeOption) ?? [],
-            TargetNamespaces: NormalizeNamespaces(parseResult.GetValue(optionSet.NamespaceOption)),
-            MoveNamespaces: NormalizeNamespaces(parseResult.GetValue(optionSet.MoveOption)),
-            IncludeStatic: parseResult.GetValue(optionSet.IncludeStaticOption),
-            IncludeAlias: parseResult.GetValue(optionSet.IncludeAliasOption),
+            ThresholdPercentage: GetConfiguredValue(parseResult, optionSet.ThresholdOption, config?.Threshold) ?? 80,
+            MinFiles: GetConfiguredValue(parseResult, optionSet.MinFilesOption, config?.MinFiles) ?? 1,
+            GlobalUsingsFileName: GetConfiguredValue(parseResult, optionSet.GlobalFileOption, config?.GlobalFile) ?? "GlobalUsings.cs",
+            Format: ParseFormat(GetConfiguredValue(parseResult, optionSet.FormatOption, config?.Format)),
+            ExcludePatterns: GetConfiguredList(parseResult, optionSet.ExcludeOption, config?.Exclude),
+            ConfigPath: configPath,
+            TargetNamespaces: targetNamespaces,
+            MoveNamespaces: moveNamespaces,
+            Warnings: warnings,
+            IncludeStatic: GetConfiguredFlag(parseResult, optionSet.IncludeStaticOption, config?.IncludeStatic),
+            IncludeAlias: GetConfiguredFlag(parseResult, optionSet.IncludeAliasOption, config?.IncludeAlias),
             SummaryOnly: parseResult.GetValue(optionSet.SummaryOnlyOption),
             DryRun: parseResult.GetValue(optionSet.DryRunOption),
             Verbose: parseResult.GetValue(optionSet.VerboseOption));
@@ -43,4 +60,81 @@ internal static class OptionMapper
                 .Where(namespaceValue => namespaceValue.Length > 0)
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
+
+    private static T? GetConfiguredValue<T>(ParseResult parseResult, Option<T?> option, T? configValue)
+    {
+        var result = parseResult.GetResult(option);
+        return result is OptionResult { Implicit: false }
+            ? parseResult.GetValue(option)
+            : configValue;
+    }
+
+    private static bool GetConfiguredFlag(ParseResult parseResult, Option<bool> option, bool? configValue)
+    {
+        var result = parseResult.GetResult(option);
+        return result is OptionResult { Implicit: false }
+            ? parseResult.GetValue(option)
+            : configValue ?? false;
+    }
+
+    private static string[] GetConfiguredList(ParseResult parseResult, Option<string[]> option, string[]? configValues)
+    {
+        var result = parseResult.GetResult(option);
+        return result is OptionResult { Implicit: false }
+            ? NormalizeNamespaces(parseResult.GetValue(option))
+            : NormalizeNamespaces(configValues);
+    }
+
+    private static string? ResolveConfigPath(ParseResult parseResult, CliOptionSet optionSet)
+    {
+        var explicitConfigPath = parseResult.GetValue(optionSet.ConfigOption);
+        if (!string.IsNullOrWhiteSpace(explicitConfigPath))
+        {
+            var resolvedConfigPath = Path.GetFullPath(explicitConfigPath);
+            if (!File.Exists(resolvedConfigPath))
+            {
+                throw new FileNotFoundException($"Could not resolve config path '{resolvedConfigPath}'.", resolvedConfigPath);
+            }
+
+            return resolvedConfigPath;
+        }
+
+        var configuredPath = parseResult.GetValue(optionSet.PathOption) ?? Environment.CurrentDirectory;
+        var fullConfiguredPath = Path.GetFullPath(configuredPath);
+        var currentDirectory = Directory.Exists(fullConfiguredPath)
+            ? fullConfiguredPath
+            : Path.GetDirectoryName(fullConfiguredPath);
+
+        while (!string.IsNullOrWhiteSpace(currentDirectory))
+        {
+            var candidatePath = Path.Combine(currentDirectory, DefaultConfigFileName);
+            if (File.Exists(candidatePath))
+            {
+                return candidatePath;
+            }
+
+            currentDirectory = Directory.GetParent(currentDirectory)?.FullName;
+        }
+
+        return null;
+    }
+
+    private static AnalysisConfigFile? LoadConfig(string? configPath)
+    {
+        if (string.IsNullOrWhiteSpace(configPath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var content = File.ReadAllText(configPath);
+            return JsonSerializer.Deserialize(content, AnalysisConfigJsonSerializerContext.Default.AnalysisConfigFile)
+                ?? new AnalysisConfigFile(null, null, null, null, null, null, null, null, null);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException($"Failed to parse config file '{configPath}': {exception.Message}", exception);
+        }
+    }
 }

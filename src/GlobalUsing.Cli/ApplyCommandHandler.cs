@@ -11,6 +11,11 @@ internal sealed class ApplyCommandHandler(
 {
     public async Task<int> InvokeAsync(GlobalUsing.Core.Models.AnalysisOptions options, CancellationToken cancellationToken)
     {
+        foreach (var warning in options.Warnings)
+        {
+            consoleWriter.WriteError($"Warning: {warning}");
+        }
+
         try
         {
             var result = await analysisWorkflow.ApplyAsync(options, cancellationToken);
