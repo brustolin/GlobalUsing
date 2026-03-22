@@ -57,4 +57,52 @@ public sealed class FileDiscoveryServiceTests
         Assert.Equal(Path.Combine(root, "src", "App", "App.csproj"), result.Projects[0].ProjectPath);
         Assert.Single(result.AllFiles.Where(path => path.EndsWith("Program.cs", StringComparison.OrdinalIgnoreCase)));
     }
+
+    [Fact]
+    public async Task DiscoverAsync_applies_parent_and_child_configs_per_project_directory()
+    {
+        using var temporaryDirectory = TemporaryDirectory.Create();
+        var root = temporaryDirectory.Path;
+        Directory.CreateDirectory(Path.Combine(root, "src", "App"));
+        Directory.CreateDirectory(Path.Combine(root, "src", "Lib"));
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "globalusing.json"),
+            """
+            {
+              "threshold": 90,
+              "move": ["System.Text.Json"]
+            }
+            """);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "src", "App", "globalusing.json"),
+            """
+            {
+              "threshold": 60,
+              "globalFile": "AppGlobalUsings.cs"
+            }
+            """);
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "src", "App", "App.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ImplicitUsings>enable</ImplicitUsings></PropertyGroup></Project>");
+        await File.WriteAllTextAsync(Path.Combine(root, "src", "App", "Program.cs"), "using System.Text.Json;");
+        await File.WriteAllTextAsync(
+            Path.Combine(root, "src", "Lib", "Lib.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><ImplicitUsings>disable</ImplicitUsings></PropertyGroup></Project>");
+        await File.WriteAllTextAsync(Path.Combine(root, "src", "Lib", "Library.cs"), "using System.Text.Json;");
+
+        var service = new FileDiscoveryService(new PhysicalFileSystem(), NullLogger<FileDiscoveryService>.Instance);
+
+        var result = await service.DiscoverAsync(AnalysisOptions.Default(root), CancellationToken.None);
+
+        var appProject = Assert.Single(result.Projects.Where(project => project.ProjectPath == Path.Combine(root, "src", "App", "App.csproj")));
+        var libProject = Assert.Single(result.Projects.Where(project => project.ProjectPath == Path.Combine(root, "src", "Lib", "Lib.csproj")));
+        Assert.NotNull(appProject.EffectiveOptions);
+        Assert.NotNull(libProject.EffectiveOptions);
+        Assert.Equal(60, appProject.EffectiveOptions!.ThresholdPercentage);
+        Assert.Equal("AppGlobalUsings.cs", appProject.EffectiveOptions.GlobalUsingsFileName);
+        Assert.Equal(["System.Text.Json"], appProject.EffectiveOptions.MoveNamespaces);
+        Assert.Equal(90, libProject.EffectiveOptions!.ThresholdPercentage);
+        Assert.Equal("GlobalUsings.cs", libProject.EffectiveOptions.GlobalUsingsFileName);
+        Assert.Equal(["System.Text.Json"], libProject.EffectiveOptions.MoveNamespaces);
+    }
 }

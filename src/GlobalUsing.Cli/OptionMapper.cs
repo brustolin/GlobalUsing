@@ -8,8 +8,6 @@ namespace GlobalUsing.Cli;
 
 internal static class OptionMapper
 {
-    private const string DefaultConfigFileName = "globalusing.json";
-
     public static AnalysisOptions Map(ParseResult parseResult, CliOptionSet optionSet)
     {
         var configPath = ResolveConfigPath(parseResult, optionSet);
@@ -18,6 +16,17 @@ internal static class OptionMapper
         var moveNamespaces = GetConfiguredList(parseResult, optionSet.MoveOption, config?.Move);
         var ignoreNamespaces = GetConfiguredList(parseResult, optionSet.IgnoreOption, config?.Ignore);
         var warnings = new List<string>();
+        var cliOverrides = new AnalysisOptionOverrides(
+            ThresholdPercentage: IsExplicit(parseResult, optionSet.ThresholdOption),
+            MinFiles: IsExplicit(parseResult, optionSet.MinFilesOption),
+            GlobalUsingsFileName: IsExplicit(parseResult, optionSet.GlobalFileOption),
+            Format: IsExplicit(parseResult, optionSet.FormatOption),
+            ExcludePatterns: IsExplicit(parseResult, optionSet.ExcludeOption),
+            TargetNamespaces: IsExplicit(parseResult, optionSet.NamespaceOption),
+            MoveNamespaces: IsExplicit(parseResult, optionSet.MoveOption),
+            IgnoreNamespaces: IsExplicit(parseResult, optionSet.IgnoreOption),
+            IncludeStatic: IsExplicit(parseResult, optionSet.IncludeStaticOption),
+            IncludeAlias: IsExplicit(parseResult, optionSet.IncludeAliasOption));
 
         if (targetNamespaces.Length > 0 && moveNamespaces.Length > 0)
         {
@@ -36,6 +45,7 @@ internal static class OptionMapper
             TargetNamespaces: targetNamespaces,
             MoveNamespaces: moveNamespaces,
             IgnoreNamespaces: ignoreNamespaces,
+            CliOverrides: cliOverrides,
             Warnings: warnings,
             IncludeStatic: GetConfiguredFlag(parseResult, optionSet.IncludeStaticOption, config?.IncludeStatic),
             IncludeAlias: GetConfiguredFlag(parseResult, optionSet.IncludeAliasOption, config?.IncludeAlias),
@@ -101,23 +111,6 @@ internal static class OptionMapper
             return resolvedConfigPath;
         }
 
-        var configuredPath = parseResult.GetValue(optionSet.PathOption) ?? Environment.CurrentDirectory;
-        var fullConfiguredPath = Path.GetFullPath(configuredPath);
-        var currentDirectory = Directory.Exists(fullConfiguredPath)
-            ? fullConfiguredPath
-            : Path.GetDirectoryName(fullConfiguredPath);
-
-        while (!string.IsNullOrWhiteSpace(currentDirectory))
-        {
-            var candidatePath = Path.Combine(currentDirectory, DefaultConfigFileName);
-            if (File.Exists(candidatePath))
-            {
-                return candidatePath;
-            }
-
-            currentDirectory = Directory.GetParent(currentDirectory)?.FullName;
-        }
-
         return null;
     }
 
@@ -139,4 +132,7 @@ internal static class OptionMapper
             throw new InvalidOperationException($"Failed to parse config file '{configPath}': {exception.Message}", exception);
         }
     }
+
+    private static bool IsExplicit<T>(ParseResult parseResult, Option<T> option) =>
+        parseResult.GetResult(option) is OptionResult { Implicit: false };
 }

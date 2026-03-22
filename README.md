@@ -88,6 +88,8 @@ CLI arguments take precedence over config values.
 
 If both `namespace` and `move` are provided after config and CLI values are merged, GlobalUsing uses `namespace` mode and ignores `move`, with a warning message.
 
+GlobalUsing also supports per-directory config files. When analyzing a solution or directory tree, a `globalusing.json` inside a child directory overrides the inherited config for that subtree only. Once processing leaves that subtree, the parent config becomes effective again.
+
 ## Quick Start
 
 Run a report for the current directory:

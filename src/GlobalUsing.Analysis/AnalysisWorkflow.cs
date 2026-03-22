@@ -29,8 +29,9 @@ public sealed class AnalysisWorkflow(
 
         foreach (var project in context.Discovery.Projects)
         {
+            var effectiveOptions = project.EffectiveOptions ?? options;
             var projectResult = context.ProjectResultsByRoot[project.RootPath];
-            var targetSignatures = CreateTargetSignatures(options.TargetNamespaces);
+            var targetSignatures = CreateTargetSignatures(effectiveOptions.TargetNamespaces);
             var promotedCandidates = projectResult.PromotionCandidates
                 .Select(candidate => candidate.Signature)
                 .Where(signature => targetSignatures.Count == 0 || targetSignatures.Contains(signature))
@@ -41,7 +42,7 @@ public sealed class AnalysisWorkflow(
                 continue;
             }
 
-            var globalUsingsPath = Path.Combine(project.RootPath, options.GlobalUsingsFileName);
+            var globalUsingsPath = Path.Combine(project.RootPath, effectiveOptions.GlobalUsingsFileName);
             var globalUpdate = await globalUsingsWriter.BuildUpdateAsync(globalUsingsPath, promotedCandidates, cancellationToken);
 
             if (globalUpdate.HasChanges)
@@ -81,7 +82,7 @@ public sealed class AnalysisWorkflow(
                 .ToImmutableArray();
 
             var rewriteTasks = rewriteTargets
-                .Select(source => sourceFileRewriter.RemoveRedundantUsingsAsync(source.FilePath, removableUsings, options, cancellationToken));
+                .Select(source => sourceFileRewriter.RemoveRedundantUsingsAsync(source.FilePath, removableUsings, effectiveOptions, cancellationToken));
 
             foreach (var rewriteResult in await Task.WhenAll(rewriteTasks))
             {
@@ -126,8 +127,9 @@ public sealed class AnalysisWorkflow(
                 .Select(path => sourceFilesByPath[path])
                 .ToImmutableArray();
 
-            var snapshot = namespaceUsageAnalyzer.Analyze(project, projectSourceFiles, options);
-            var projectResult = globalUsingRecommender.Recommend(project, snapshot, options);
+            var effectiveOptions = project.EffectiveOptions ?? options;
+            var snapshot = namespaceUsageAnalyzer.Analyze(project, projectSourceFiles, effectiveOptions);
+            var projectResult = globalUsingRecommender.Recommend(project, snapshot, effectiveOptions);
             projectResults.Add(projectResult);
             projectResultsByRoot[project.RootPath] = projectResult;
         }

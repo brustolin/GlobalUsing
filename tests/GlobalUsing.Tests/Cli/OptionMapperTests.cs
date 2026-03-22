@@ -97,7 +97,7 @@ public sealed class OptionMapperTests
     }
 
     [Fact]
-    public void Map_discovers_config_by_walking_up_from_path()
+    public void Map_does_not_auto_discover_directory_config_without_explicit_config_argument()
     {
         using var temporaryDirectory = TemporaryDirectory.Create();
         var root = temporaryDirectory.Path;
@@ -118,9 +118,9 @@ public sealed class OptionMapperTests
 
         var mapped = OptionMapper.Map(parseResult, options);
 
-        Assert.Equal(77, mapped.ThresholdPercentage);
-        Assert.Equal(["System.Text.Json"], mapped.MoveNamespaces);
-        Assert.Equal(Path.Combine(root, "globalusing.json"), mapped.ConfigPath);
+        Assert.Equal(80, mapped.ThresholdPercentage);
+        Assert.Empty(mapped.MoveNamespaces);
+        Assert.Null(mapped.ConfigPath);
     }
 
     [Fact]

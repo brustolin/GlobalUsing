@@ -8,4 +8,5 @@ public sealed record DiscoveredProject(
     string? ProjectPath,
     bool ImplicitUsingsEnabled,
     FrozenSet<string> ImplicitNamespaces,
-    ImmutableArray<string> CSharpFiles);
+    ImmutableArray<string> CSharpFiles,
+    AnalysisOptions? EffectiveOptions = null);
